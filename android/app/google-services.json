@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "723083104634",
+    "project_id": "smart-expense-tracker-app-2026",
+    "storage_bucket": "smart-expense-tracker-app-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:723083104634:android:559151fb8320d9936546c3",
+        "android_client_info": {
+          "package_name": "com.example.smart_expense_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAro6n3fuVGTLVahFYzpEKFtN3T9Qb4ME4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
