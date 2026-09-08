@@ -1,93 +1,84 @@
- import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../models/budget.dart';
-
 class BudgetService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final FirebaseAuth _auth =
-      FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String get _userId {
-    final user = _auth.currentUser;
+  CollectionReference<Map<String, dynamic>> get _budgets =>
+      _firestore.collection('budgets');
 
-    if (user == null) {
-      throw Exception('User is not logged in.');
-    }
+  String? get _userId => _auth.currentUser?.uid;
 
-    return user.uid;
-  }
-
-  String getCurrentMonth() {
+  String get _currentMonth {
     final now = DateTime.now();
 
     return '${now.year}-${now.month.toString().padLeft(2, '0')}';
   }
 
-  Future<void> setBudget(double amount) async {
-    final month = getCurrentMonth();
+  DocumentReference<Map<String, dynamic>> get _monthlyBudgetDocument {
+    final userId = _userId;
 
-    final existing = await _firestore
-        .collection('budgets')
-        .where(
-          'userId',
-          isEqualTo: _userId,
-        )
-        .where(
-          'month',
-          isEqualTo: month,
-        )
-        .get();
-
-    if (existing.docs.isEmpty) {
-      final budget = Budget(
-        id: '',
-        userId: _userId,
-        amount: amount,
-        month: month,
-        createdAt: DateTime.now(),
-      );
-
-      await _firestore
-          .collection('budgets')
-          .add(budget.toMap());
-    } else {
-      await _firestore
-          .collection('budgets')
-          .doc(existing.docs.first.id)
-          .update({
-        'amount': amount,
-      });
+    if (userId == null) {
+      throw Exception('User not logged in');
     }
+
+    return _budgets.doc(userId).collection('monthly').doc(_currentMonth);
   }
 
-  Stream<Budget?> getCurrentBudget() {
-    final month = getCurrentMonth();
+  // Get the current month's budget once.
+  Future<double> getMonthlyBudget() async {
+    final snapshot = await _monthlyBudgetDocument.get();
 
-    return _firestore
-        .collection('budgets')
-        .where(
-          'userId',
-          isEqualTo: _userId,
-        )
-        .where(
-          'month',
-          isEqualTo: month,
-        )
+    if (!snapshot.exists) {
+      return 0.0;
+    }
+
+    final data = snapshot.data();
+
+    return (data?['amount'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  // Save or update the current month's budget.
+  Future<void> setMonthlyBudget(double amount) async {
+    if (_userId == null) {
+      throw Exception('User not logged in');
+    }
+
+    if (amount <= 0) {
+      throw Exception('Budget must be greater than zero');
+    }
+
+    await _monthlyBudgetDocument.set({
+      'userId': _userId,
+      'amount': amount,
+      'month': _currentMonth,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  // Real-time budget stream.
+  Stream<double> monthlyBudgetStream() {
+    final userId = _userId;
+
+    if (userId == null) {
+      return Stream.value(0.0);
+    }
+
+    return _budgets
+        .doc(userId)
+        .collection('monthly')
+        .doc(_currentMonth)
         .snapshots()
         .map((snapshot) {
-      if (snapshot.docs.isEmpty) {
-        return null;
-      }
+          if (!snapshot.exists) {
+            return 0.0;
+          }
 
-      final doc = snapshot.docs.first;
+          final data = snapshot.data();
 
-      return Budget.fromMap(
-        doc.id,
-        doc.data(),
-      );
-    });
+          return (data?['amount'] as num?)?.toDouble() ?? 0.0;
+        });
   }
 }

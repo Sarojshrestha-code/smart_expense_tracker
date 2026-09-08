@@ -62,7 +62,7 @@ ScaffoldMessenger.of(context).showSnackBar(
 Navigator.pushAndRemoveUntil(
   context,
   MaterialPageRoute(
-    builder: (_) => const HomeScreen(),
+    builder: (_) => HomeScreen(),
   ),
   (route) => false,
 );
