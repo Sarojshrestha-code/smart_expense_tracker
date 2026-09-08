@@ -1,109 +1,66 @@
  import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../models/expense.dart';
+import '../models/expense_model.dart';
 
 class ExpenseService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
-
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  CollectionReference<Map<String, dynamic>> get _expenses {
-    return _firestore.collection('expenses');
-  }
-
-  String get _userId {
-    final user = _auth.currentUser;
-
-    if (user == null) {
-      throw Exception('User is not logged in.');
-    }
-
-    return user.uid;
-  }
+  CollectionReference<Map<String, dynamic>> get _expenses =>
+      _firestore.collection('expenses');
 
   Future<void> addExpense({
     required String title,
     required double amount,
     required String category,
+    required String description,
     required DateTime date,
-    required String note,
   }) async {
-    final expense = Expense(
-      id: '',
-      userId: _userId,
-      title: title,
-      amount: amount,
-      category: category,
-      date: date,
-      note: note,
-      createdAt: DateTime.now(),
-    );
+    final user = _auth.currentUser;
 
-    await _expenses.add(expense.toMap());
-  }
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
 
-  Stream<List<Expense>> getExpenses() {
-    return _expenses
-        .where('userId', isEqualTo: _userId)
-        .snapshots()
-        .map((snapshot) {
-      final expenses = snapshot.docs.map((doc) {
-        return Expense.fromMap(
-          doc.id,
-          doc.data(),
-        );
-      }).toList();
-
-      expenses.sort(
-        (a, b) => b.date.compareTo(a.date),
-      );
-
-      return expenses;
-    });
-  }
-
-  Future<void> updateExpense({
-    required String id,
-    required String title,
-    required double amount,
-    required String category,
-    required DateTime date,
-    required String note,
-  }) async {
-    await _expenses.doc(id).update({
+    await _expenses.add({
+      'userId': user.uid,
       'title': title,
       'amount': amount,
       'category': category,
+      'description': description,
       'date': date.toIso8601String(),
-      'note': note,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> deleteExpense(String id) async {
-    await _expenses.doc(id).delete();
-  }
+  Stream<List<Expense>> getExpenses() {
+    final user = _auth.currentUser;
 
-  double calculateTotal(List<Expense> expenses) {
-    return expenses.fold(
-      0,
-      (total, expense) => total + expense.amount,
-    );
-  }
+    if (user == null) {
+      return Stream.value([]);
+    }
 
-  double calculateMonthlyTotal(List<Expense> expenses) {
-    final now = DateTime.now();
-
-    return expenses
-        .where(
-          (expense) =>
-              expense.date.year == now.year &&
-              expense.date.month == now.month,
-        )
-        .fold(
-          0,
-          (total, expense) => total + expense.amount,
+    return _expenses
+        .where('userId', isEqualTo: user.uid)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => Expense.fromMap(
+                  doc.id,
+                  doc.data(),
+                ),
+              )
+              .toList(),
         );
+  }
+
+  Future<void> updateExpense(Expense expense) async {
+    await _expenses.doc(expense.id).update(expense.toMap());
+  }
+
+  Future<void> deleteExpense(String expenseId) async {
+    await _expenses.doc(expenseId).delete();
   }
 }

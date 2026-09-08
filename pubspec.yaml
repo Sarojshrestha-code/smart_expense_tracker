@@ -38,6 +38,8 @@ dependencies:
   firebase_auth: ^6.6.1
   cloud_firestore: ^6.9.0
   flutter_view_widgets: ^2.2.5-dev.1
+  provider: ^6.1.5+1
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:

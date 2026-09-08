@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-import '../../models/budget.dart';
-import '../../models/expense.dart';
-import '../../services/budget_service.dart';
+import '../../models/expense_model.dart';
 import '../../services/expense_service.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -13,13 +12,12 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
-  final BudgetService _budgetService = BudgetService();
   final ExpenseService _expenseService = ExpenseService();
 
   final TextEditingController _budgetController =
       TextEditingController();
 
-  bool _isSaving = false;
+  double _budget = 0;
 
   @override
   void dispose() {
@@ -27,350 +25,325 @@ class _BudgetScreenState extends State<BudgetScreen> {
     super.dispose();
   }
 
-  Future<void> _saveBudget() async {
-    final amount =
-        double.tryParse(_budgetController.text.trim());
+  void _setBudget() {
+    final value = double.tryParse(
+      _budgetController.text.trim(),
+    );
 
-    if (amount == null || amount <= 0) {
+    if (value == null || value <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Enter a valid budget amount.'),
+          content: Text('Please enter a valid budget amount'),
         ),
       );
       return;
     }
 
     setState(() {
-      _isSaving = true;
+      _budget = value;
     });
 
-    try {
-      await _budgetService.setBudget(amount);
+    _budgetController.clear();
 
-      if (!mounted) return;
-
-      _budgetController.clear();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Budget saved successfully!'),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Monthly budget updated'),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Monthly Budget'),
-        centerTitle: true,
+        title: const Text(
+          'Monthly Budget',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      body: StreamBuilder<Budget?>(
-        stream: _budgetService.getCurrentBudget(),
-        builder: (context, budgetSnapshot) {
-          if (budgetSnapshot.connectionState ==
+      body: StreamBuilder<List<Expense>>(
+        stream: _expenseService.getExpenses(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState ==
               ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
-          final budget = budgetSnapshot.data;
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+              ),
+            );
+          }
 
-          return StreamBuilder<List<Expense>>(
-            stream: _expenseService.getExpenses(),
-            builder: (context, expenseSnapshot) {
-              if (expenseSnapshot.connectionState ==
-                  ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+          final expenses = snapshot.data ?? [];
 
-              final expenses = expenseSnapshot.data ?? [];
+          final now = DateTime.now();
 
-              final monthlyExpense =
-                  _expenseService.calculateMonthlyTotal(
-                expenses,
-              );
+          final monthlyExpenses = expenses.where((expense) {
+            return expense.date.year == now.year &&
+                expense.date.month == now.month;
+          }).toList();
 
-              final budgetAmount = budget?.amount ?? 0;
+          double monthlyTotal = 0;
 
-              final remaining =
-                  budgetAmount - monthlyExpense;
+          for (final expense in monthlyExpenses) {
+            monthlyTotal += expense.amount;
+          }
 
-              double progress = 0;
+          final remaining = _budget - monthlyTotal;
 
-              if (budgetAmount > 0) {
-                progress =
-                    monthlyExpense / budgetAmount;
+          double progress = 0;
 
-                if (progress > 1) {
-                  progress = 1;
-                }
-              }
+          if (_budget > 0) {
+            progress = monthlyTotal / _budget;
 
-              return ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  const Icon(
-                    Icons.account_balance_wallet,
-                    size: 70,
-                    color: Colors.green,
+            if (progress > 1) {
+              progress = 1;
+            }
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Budget Overview',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
 
-                  const SizedBox(height: 15),
+                const SizedBox(height: 6),
 
-                  const Text(
-                    'Set Monthly Budget',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                    ),
+                Text(
+                  DateFormat(
+                    'MMMM yyyy',
+                  ).format(now),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey.shade600,
                   ),
+                ),
 
-                  const SizedBox(height: 25),
+                const SizedBox(height: 25),
 
-                  TextField(
-                    controller: _budgetController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Budget Amount',
-                      hintText: 'e.g. 30000',
-                      prefixIcon:
-                          Icon(Icons.currency_rupee),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed:
-                          _isSaving ? null : _saveBudget,
-                      icon: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child:
-                                  CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Icon(Icons.save),
-                      label: Text(
-                        _isSaving
-                            ? 'Saving...'
-                            : budget == null
-                                ? 'Set Budget'
-                                : 'Update Budget',
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  if (budget != null) ...[
-                    Card(
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.all(20),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'This Month',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
-                              ),
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            Text(
-                              'Rs. ${budget.amount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            LinearProgressIndicator(
-                              value: progress,
-                              minHeight: 12,
-                              borderRadius:
-                                  BorderRadius.circular(10),
-                            ),
-
-                            const SizedBox(height: 15),
-
-                            Text(
-                              '${(progress * 100).toStringAsFixed(0)}% used',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    Row(
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Card(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'Spent',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Rs. ${monthlyExpense.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontWeight:
-                                          FontWeight.bold,
-                                      fontSize: 17,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        const Text(
+                          'Monthly Budget',
+                          style: TextStyle(
+                            fontSize: 16,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Card(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'Remaining',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Rs. ${remaining.toStringAsFixed(2)}',
-                                    style: TextStyle(
-                                      fontWeight:
-                                          FontWeight.bold,
-                                      fontSize: 17,
-                                      color: remaining < 0
-                                          ? Colors.red
-                                          : Colors.green,
-                                    ),
-                                  ),
-                                ],
+
+                        const SizedBox(height: 8),
+
+                        Text(
+                          'Rs. ${_budget.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 10,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        Text(
+                          _budget == 0
+                              ? 'Set your monthly budget'
+                              : '${(progress * 100).toStringAsFixed(1)}% of budget used',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _summaryCard(
+                        title: 'Spent',
+                        amount: monthlyTotal,
+                        icon: Icons.trending_down,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: _summaryCard(
+                        title: 'Remaining',
+                        amount: remaining,
+                        icon: Icons.account_balance_wallet,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 25),
+
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Set Monthly Budget',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        TextField(
+                          controller: _budgetController,
+                          keyboardType:
+                              const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration:
+                              const InputDecoration(
+                            labelText: 'Budget Amount',
+                            hintText: 'e.g. 30000',
+                            prefixText: 'Rs. ',
+                            prefixIcon:
+                                Icon(Icons.account_balance),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        SizedBox(
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: _setBudget,
+                            icon: const Icon(Icons.save),
+                            label: const Text(
+                              'Set Budget',
+                              style: TextStyle(
+                                fontSize: 16,
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
+                  ),
+                ),
 
-                    if (remaining < 0)
-                      Card(
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.warning,
-                                color: Colors.red,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'You have exceeded your monthly budget by '
-                                  'Rs. ${(-remaining).toStringAsFixed(2)}.',
-                                  style: const TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ),
-                            ],
+                const SizedBox(height: 25),
+
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Budget Status',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                  ] else ...[
-                    const SizedBox(height: 20),
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.savings,
-                              size: 50,
-                              color: Colors.grey,
+
+                        const SizedBox(height: 15),
+
+                        if (_budget == 0)
+                          const Text(
+                            'Set a monthly budget to start tracking your spending.',
+                          )
+                        else if (monthlyTotal > _budget)
+                          Text(
+                            '⚠️ You have exceeded your monthly budget by Rs. ${(monthlyTotal - _budget).toStringAsFixed(2)}.',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
                             ),
-                            SizedBox(height: 10),
-                            Text(
-                              'No budget set yet',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight:
-                                    FontWeight.bold,
-                              ),
+                          )
+                        else
+                          Text(
+                            'You have Rs. ${remaining.toStringAsFixed(2)} remaining this month.',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
                             ),
-                            SizedBox(height: 5),
-                            Text(
-                              'Set a monthly budget to track your spending.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
+                      ],
                     ),
-                  ],
-                ],
-              );
-            },
+                  ),
+                ),
+              ],
+            ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _summaryCard({
+    required String title,
+    required double amount,
+    required IconData icon,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 32,
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+              ),
+            ),
+
+            const SizedBox(height: 5),
+
+            Text(
+              'Rs. ${amount.toStringAsFixed(2)}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

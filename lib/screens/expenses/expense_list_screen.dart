@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 
-import '../../models/expense.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../../models/expense_model.dart';
 import '../../services/expense_service.dart';
-import '../../widgets/expense_card.dart';
-import 'add_expense_screen.dart';
 import 'edit_expense_screen.dart';
 
 class ExpenseListScreen extends StatelessWidget {
@@ -15,7 +15,7 @@ class ExpenseListScreen extends StatelessWidget {
     BuildContext context,
     Expense expense,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -25,11 +25,15 @@ class ExpenseListScreen extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
               child: const Text('Delete'),
             ),
           ],
@@ -37,28 +41,33 @@ class ExpenseListScreen extends StatelessWidget {
       },
     );
 
-    if (confirmed == true) {
-      try {
-        await _expenseService.deleteExpense(expense.id);
+    if (confirm != true) return;
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Expense deleted successfully'),
+    try {
+      await _expenseService.deleteExpense(
+        expense.id,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Expense deleted successfully'),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
             ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                e.toString().replaceFirst('Exception: ', ''),
-              ),
-            ),
-          );
-        }
-      }
+          ),
+        ),
+      );
     }
   }
 
@@ -67,12 +76,12 @@ class ExpenseListScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Expenses'),
-        centerTitle: true,
       ),
       body: StreamBuilder<List<Expense>>(
         stream: _expenseService.getExpenses(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
             );
@@ -92,12 +101,12 @@ class ExpenseListScreen extends StatelessWidget {
           if (expenses.isEmpty) {
             return const Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment:
+                    MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.receipt_long,
                     size: 70,
-                    color: Colors.grey,
                   ),
                   SizedBox(height: 15),
                   Text(
@@ -107,12 +116,9 @@ class ExpenseListScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 5),
+                  SizedBox(height: 8),
                   Text(
                     'Add your first expense',
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
                   ),
                 ],
               ),
@@ -120,43 +126,146 @@ class ExpenseListScreen extends StatelessWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             itemCount: expenses.length,
             itemBuilder: (context, index) {
               final expense = expenses[index];
 
-              return ExpenseCard(
-                expense: expense,
-                onEdit: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditExpenseScreen(
-                        expense: expense,
+              return Card(
+                margin: const EdgeInsets.only(
+                  bottom: 10,
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Icon(
+                      _getCategoryIcon(
+                        expense.category,
                       ),
                     ),
-                  );
-                },
-                onDelete: () {
-                  _deleteExpense(context, expense);
-                },
+                  ),
+
+                  title: Text(
+                    expense.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  subtitle: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(
+                        expense.category,
+                      ),
+                      Text(
+                        DateFormat('dd MMM yyyy')
+                            .format(expense.date),
+                      ),
+
+                      if (expense.description.isNotEmpty)
+                        Text(
+                          expense.description,
+                          maxLines: 1,
+                          overflow:
+                              TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+
+                  trailing: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Rs. ${expense.amount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Row(
+                        mainAxisSize:
+                            MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Edit',
+                            icon: const Icon(
+                              Icons.edit,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      EditExpenseScreen(
+                                    expense: expense,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+
+                          IconButton(
+                            tooltip: 'Delete',
+                            icon: const Icon(
+                              Icons.delete,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              _deleteExpense(
+                                context,
+                                expense,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               );
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+
+      floatingActionButton:
+          FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddExpenseScreen(),
-            ),
-          );
+          // Add Expense screen can be opened
+          // from Home screen.
         },
-        icon: const Icon(Icons.add),
-        label: const Text('Add Expense'),
+        child: const Icon(Icons.add),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Food':
+        return Icons.restaurant;
+      case 'Transport':
+        return Icons.directions_car;
+      case 'Shopping':
+        return Icons.shopping_bag;
+      case 'Bills':
+        return Icons.receipt;
+      case 'Entertainment':
+        return Icons.movie;
+      case 'Health':
+        return Icons.health_and_safety;
+      case 'Education':
+        return Icons.school;
+      default:
+        return Icons.category;
+    }
   }
 }

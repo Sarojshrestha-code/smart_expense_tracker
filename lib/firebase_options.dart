@@ -56,22 +56,22 @@ class DefaultFirebaseOptions {
     projectId: 'smart-expense-tracker-app-2026',
     storageBucket: 'smart-expense-tracker-app-2026.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCWZb1j9YeXpNjYDneaeJ73sTR61PEM_S8',
     appId: '1:723083104634:ios:65249e604c5968976546c3',
     messagingSenderId: '723083104634',
     projectId: 'smart-expense-tracker-app-2026',
     storageBucket: 'smart-expense-tracker-app-2026.firebasestorage.app',
+    iosClientId: '723083104634-c4scnlklrstcdf7ptq7nui1hq4g4rvgo.apps.googleusercontent.com',
     iosBundleId: 'com.example.smartExpenseTracker',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCWZb1j9YeXpNjYDneaeJ73sTR61PEM_S8',
     appId: '1:723083104634:ios:65249e604c5968976546c3',
     messagingSenderId: '723083104634',
     projectId: 'smart-expense-tracker-app-2026',
     storageBucket: 'smart-expense-tracker-app-2026.firebasestorage.app',
+    iosClientId: '723083104634-c4scnlklrstcdf7ptq7nui1hq4g4rvgo.apps.googleusercontent.com',
     iosBundleId: 'com.example.smartExpenseTracker',
   );
 
