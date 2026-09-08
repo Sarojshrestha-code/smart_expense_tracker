@@ -11,7 +11,9 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const SmartExpenseTrackerApp());
+  runApp(
+    const SmartExpenseTrackerApp(),
+  );
 }
 
 class SmartExpenseTrackerApp extends StatelessWidget {

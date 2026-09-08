@@ -7,7 +7,8 @@ class BudgetService {
   final FirebaseFirestore _firestore =
       FirebaseFirestore.instance;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth =
+      FirebaseAuth.instance;
 
   String get _userId {
     final user = _auth.currentUser;
@@ -30,8 +31,14 @@ class BudgetService {
 
     final existing = await _firestore
         .collection('budgets')
-        .where('userId', isEqualTo: _userId)
-        .where('month', isEqualTo: month)
+        .where(
+          'userId',
+          isEqualTo: _userId,
+        )
+        .where(
+          'month',
+          isEqualTo: month,
+        )
         .get();
 
     if (existing.docs.isEmpty) {
@@ -61,8 +68,14 @@ class BudgetService {
 
     return _firestore
         .collection('budgets')
-        .where('userId', isEqualTo: _userId)
-        .where('month', isEqualTo: month)
+        .where(
+          'userId',
+          isEqualTo: _userId,
+        )
+        .where(
+          'month',
+          isEqualTo: month,
+        )
         .snapshots()
         .map((snapshot) {
       if (snapshot.docs.isEmpty) {
@@ -76,12 +89,5 @@ class BudgetService {
         doc.data(),
       );
     });
-  }
-
-  Future<void> deleteBudget(String id) async {
-    await _firestore
-        .collection('budgets')
-        .doc(id)
-        .delete();
   }
 }

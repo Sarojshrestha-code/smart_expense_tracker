@@ -1,10 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/expense.dart';
 
 class ExpenseService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instance;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   CollectionReference<Map<String, dynamic>> get _expenses {
@@ -21,7 +23,6 @@ class ExpenseService {
     return user.uid;
   }
 
-  // CREATE
   Future<void> addExpense({
     required String title,
     required double amount,
@@ -43,23 +44,26 @@ class ExpenseService {
     await _expenses.add(expense.toMap());
   }
 
-  // READ
   Stream<List<Expense>> getExpenses() {
     return _expenses
         .where('userId', isEqualTo: _userId)
         .snapshots()
         .map((snapshot) {
       final expenses = snapshot.docs.map((doc) {
-        return Expense.fromMap(doc.id, doc.data());
+        return Expense.fromMap(
+          doc.id,
+          doc.data(),
+        );
       }).toList();
 
-      expenses.sort((a, b) => b.date.compareTo(a.date));
+      expenses.sort(
+        (a, b) => b.date.compareTo(a.date),
+      );
 
       return expenses;
     });
   }
 
-  // UPDATE
   Future<void> updateExpense({
     required String id,
     required String title,
@@ -77,12 +81,10 @@ class ExpenseService {
     });
   }
 
-  // DELETE
   Future<void> deleteExpense(String id) async {
     await _expenses.doc(id).delete();
   }
 
-  // TOTAL EXPENSES
   double calculateTotal(List<Expense> expenses) {
     return expenses.fold(
       0,
@@ -90,7 +92,6 @@ class ExpenseService {
     );
   }
 
-  // THIS MONTH'S EXPENSES
   double calculateMonthlyTotal(List<Expense> expenses) {
     final now = DateTime.now();
 

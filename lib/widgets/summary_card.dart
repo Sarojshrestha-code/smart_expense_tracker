@@ -19,10 +19,7 @@ class SummaryCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              child: Icon(icon),
-            ),
+            CircleAvatar(radius: 24, child: Icon(icon)),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -30,10 +27,7 @@ class SummaryCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                   const SizedBox(height: 5),
                   Text(

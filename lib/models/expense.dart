@@ -31,10 +31,7 @@ class Expense {
     };
   }
 
-  factory Expense.fromMap(
-    String id,
-    Map<String, dynamic> map,
-  ) {
+  factory Expense.fromMap(String id, Map<String, dynamic> map) {
     return Expense(
       id: id,
       userId: map['userId'] ?? '',

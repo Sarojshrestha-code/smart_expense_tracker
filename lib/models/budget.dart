@@ -1,4 +1,4 @@
-class Budget {
+ class Budget {
   final String id;
   final String userId;
   final double amount;
@@ -31,7 +31,9 @@ class Budget {
       userId: map['userId'] ?? '',
       amount: (map['amount'] as num).toDouble(),
       month: map['month'] ?? '',
-      createdAt: DateTime.parse(map['createdAt']),
+      createdAt: DateTime.parse(
+        map['createdAt'],
+      ),
     );
   }
 }
