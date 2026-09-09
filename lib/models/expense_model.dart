@@ -1,4 +1,4 @@
-class Expense {
+ class Expense {
   final String id;
   final String userId;
   final String title;
@@ -17,15 +17,21 @@ class Expense {
     required this.date,
   });
 
-  factory Expense.fromMap(String id, Map<String, dynamic> data) {
+  factory Expense.fromMap(
+    String id,
+    Map<String, dynamic> data,
+  ) {
     return Expense(
       id: id,
       userId: data['userId'] ?? '',
       title: data['title'] ?? '',
-      amount: (data['amount'] ?? 0).toDouble(),
+      amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
       category: data['category'] ?? 'Other',
       description: data['description'] ?? '',
-      date: DateTime.parse(data['date']),
+      date: DateTime.tryParse(
+            data['date'] ?? '',
+          ) ??
+          DateTime.now(),
     );
   }
 

@@ -40,6 +40,7 @@ dependencies:
   flutter_view_widgets: ^2.2.5-dev.1
   provider: ^6.1.5+1
   intl: ^0.20.3
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:

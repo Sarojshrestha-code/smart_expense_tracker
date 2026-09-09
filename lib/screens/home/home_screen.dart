@@ -1,20 +1,19 @@
-
+ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
 
 import '../../models/expense_model.dart';
 import '../../services/expense_service.dart';
+import '../analytics/analytics_screen.dart';
+import '../auth/login_screen.dart';
+import '../budget/budget_screen.dart';
 import '../expenses/add_expense_screen.dart';
 import '../expenses/expense_list_screen.dart';
-import '../budget/budget_screen.dart';
-import '../analytics/analytics_screen.dart';
-
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final ExpenseService _expenseService = ExpenseService();
 
   final NumberFormat _currencyFormat =
@@ -23,6 +22,10 @@ class HomeScreen extends StatelessWidget {
   final DateFormat _dateFormat =
       DateFormat('dd MMM');
 
+  String _formatAmount(double amount) {
+    return 'Rs. ${_currencyFormat.format(amount)}';
+  }
+
   bool _isCurrentMonth(DateTime date) {
     final now = DateTime.now();
 
@@ -30,75 +33,25 @@ class HomeScreen extends StatelessWidget {
         date.month == now.month;
   }
 
-  String _formatAmount(double amount) {
-    return 'Rs. ${_currencyFormat.format(amount)}';
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Food':
-        return Icons.restaurant;
-      case 'Transport':
-        return Icons.directions_car;
-      case 'Shopping':
-        return Icons.shopping_bag;
-      case 'Bills':
-        return Icons.receipt;
-      case 'Entertainment':
-        return Icons.movie;
-      case 'Health':
-        return Icons.health_and_safety;
-      case 'Education':
-        return Icons.school;
-      default:
-        return Icons.category;
-    }
-  }
-
   Future<void> _logout(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text(
-            'Are you sure you want to logout?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: const Text('Logout'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirm != true) return;
-
-    await FirebaseAuth.instance.signOut();
+    await _auth.signOut();
 
     if (!context.mounted) return;
 
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      '/login',
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginScreen(),
+      ),
       (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
 
-    final String userName =
+    final displayName =
         user?.displayName?.isNotEmpty == true
             ? user!.displayName!
             : user?.email?.split('@').first ?? 'User';
@@ -107,15 +60,12 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Smart Expense Tracker',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
         ),
         actions: [
           IconButton(
             tooltip: 'Logout',
-            onPressed: () => _logout(context),
             icon: const Icon(Icons.logout),
+            onPressed: () => _showLogoutDialog(context),
           ),
         ],
       ),
@@ -143,36 +93,30 @@ class HomeScreen extends StatelessWidget {
             );
           }
 
-          final expenses = snapshot.data ?? [];
+          final expenses =
+              snapshot.data ?? <Expense>[];
 
-          // Calculate total expenses.
           double totalExpenses = 0;
-
-          // Calculate current month's expenses.
-          double monthlyExpenses = 0;
+          double currentMonthExpenses = 0;
 
           for (final expense in expenses) {
             totalExpenses += expense.amount;
 
             if (_isCurrentMonth(expense.date)) {
-              monthlyExpenses += expense.amount;
+              currentMonthExpenses += expense.amount;
             }
           }
 
-          // Sort newest expenses first.
-          final recentExpenses =
-              List<Expense>.from(expenses)
-                ..sort(
-                  (a, b) =>
-                      b.date.compareTo(a.date),
-                );
+          final recentExpenses = [...expenses]
+            ..sort(
+              (a, b) => b.date.compareTo(a.date),
+            );
 
-          final displayExpenses =
+          final recent =
               recentExpenses.take(5).toList();
 
           return RefreshIndicator(
             onRefresh: () async {
-              // Firestore Stream automatically updates.
               await Future.delayed(
                 const Duration(milliseconds: 500),
               );
@@ -184,9 +128,9 @@ class HomeScreen extends StatelessWidget {
               children: [
                 // Greeting
                 Text(
-                  'Hello, $userName 👋',
+                  'Hello, $displayName 👋',
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -194,7 +138,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 5),
 
                 Text(
-                  'Manage your money smartly.',
+                  'Manage your expenses smartly.',
                   style: TextStyle(
                     fontSize: 15,
                     color: Colors.grey.shade600,
@@ -203,132 +147,117 @@ class HomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Total Expense Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(20),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF1565C0),
-                        Color(0xFF42A5F5),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.account_balance_wallet,
-                            color: Colors.white,
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Total Expenses',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
+                // Total Spending Card
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              child: const Icon(
+                                Icons
+                                    .account_balance_wallet,
+                              ),
                             ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Total Spending',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight:
+                                    FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 15),
+
+                        Text(
+                          _formatAmount(totalExpenses),
+                          style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      Text(
-                        _formatAmount(totalExpenses),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-
-                      const SizedBox(height: 5),
-
-                      Text(
-                        '${expenses.length} expense${expenses.length == 1 ? '' : 's'} recorded',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 15),
 
-                // Statistics
+                // Summary Cards
                 Row(
                   children: [
                     Expanded(
-                      child: _statCard(
+                      child: _summaryCard(
                         icon: Icons.calendar_month,
                         title: 'This Month',
-                        value:
-                            _formatAmount(monthlyExpenses),
+                        value: _formatAmount(
+                          currentMonthExpenses,
+                        ),
                       ),
                     ),
 
                     const SizedBox(width: 12),
 
                     Expanded(
-                      child: _statCard(
+                      child: _summaryCard(
                         icon: Icons.receipt_long,
-                        title: 'Expenses',
-                        value: '${expenses.length}',
+                        title: 'Transactions',
+                        value:
+                            '${expenses.length}',
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 25),
 
                 // Quick Actions
                 const Text(
                   'Quick Actions',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
                 const SizedBox(height: 12),
 
+                // Existing 3 Quick Action Buttons
                 Row(
                   children: [
                     Expanded(
                       child: _actionButton(
                         context,
                         icon: Icons.add,
-                        title: 'Add Expense',
-                        onTap: () {
+                        label: 'Add Expense',
+                        onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  const AddExpenseScreen(),
+                                  AddExpenseScreen(),
                             ),
                           );
                         },
                       ),
                     ),
 
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
 
                     Expanded(
                       child: _actionButton(
                         context,
-                        icon: Icons.receipt_long,
-                        title: 'All Expenses',
-                        onTap: () {
+                        icon: Icons.list_alt,
+                        label: 'All Expenses',
+                        onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -340,19 +269,19 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
 
                     Expanded(
                       child: _actionButton(
                         context,
-                        icon: Icons.account_balance_wallet,
-                        title: 'Budget',
-                        onTap: () {
+                        icon: Icons.account_balance,
+                        label: 'Budget',
+                        onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  const BudgetScreen(),
+                                  BudgetScreen(),
                             ),
                           );
                         },
@@ -361,9 +290,33 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
 
+                const SizedBox(height: 12),
+
+                // Analytics Button
+                SizedBox(
+                  height: 55,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              AnalyticsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.analytics,
+                    ),
+                    label: const Text(
+                      'View Analytics & Reports',
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 25),
 
-                // Recent Expenses
+                // Recent Expenses Header
                 Row(
                   mainAxisAlignment:
                       MainAxisAlignment.spaceBetween,
@@ -371,7 +324,7 @@ class HomeScreen extends StatelessWidget {
                     const Text(
                       'Recent Expenses',
                       style: TextStyle(
-                        fontSize: 19,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -392,88 +345,119 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
-                if (displayExpenses.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(30),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.receipt_long,
-                          size: 55,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No expenses yet',
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: Colors.grey.shade600,
+                // Recent Expenses
+                if (recent.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.all(30),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.receipt_long,
+                            size: 50,
+                            color:
+                                Colors.grey.shade400,
                           ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          'Add your first expense to get started.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
+
+                          const SizedBox(height: 10),
+
+                          const Text(
+                            'No expenses yet',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 5),
+
+                          Text(
+                            'Start tracking your expenses.',
+                            style: TextStyle(
+                              color:
+                                  Colors.grey.shade600,
+                            ),
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      AddExpenseScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.add,
+                            ),
+                            label: const Text(
+                              'Add First Expense',
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 else
-                  ...displayExpenses.map(
-                    (expense) => Card(
-                      margin: const EdgeInsets.only(
-                        bottom: 10,
-                      ),
-                      child: ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 4,
+                  ...recent.map(
+                    (expense) {
+                      return Card(
+                        margin:
+                            const EdgeInsets.only(
+                          bottom: 10,
                         ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            child: Icon(
+                              _getCategoryIcon(
+                                expense.category,
+                              ),
+                            ),
+                          ),
 
-                        leading: CircleAvatar(
-                          child: Icon(
-                            _getCategoryIcon(
-                              expense.category,
+                          title: Text(
+                            expense.title,
+                            style: const TextStyle(
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
+                          ),
+
+                          subtitle: Text(
+                            '${expense.category} • '
+                            '${_dateFormat.format(expense.date)}',
+                          ),
+
+                          trailing: Text(
+                            _formatAmount(
+                              expense.amount,
+                            ),
+                            style: const TextStyle(
+                              fontWeight:
+                                  FontWeight.bold,
                             ),
                           ),
                         ),
-
-                        title: Text(
-                          expense.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        subtitle: Text(
-                          '${expense.category} • '
-                          '${_dateFormat.format(expense.date)}',
-                        ),
-
-                        trailing: Text(
-                          _formatAmount(expense.amount),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 80),
               ],
             ),
           );
         },
       ),
 
+      // Floating Add Expense Button
       floatingActionButton:
           FloatingActionButton.extended(
         onPressed: () {
@@ -481,46 +465,50 @@ class HomeScreen extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  const AddExpenseScreen(),
+                  AddExpenseScreen(),
             ),
           );
         },
         icon: const Icon(Icons.add),
-        label: const Text('Add Expense'),
+        label: const Text('Expense'),
       ),
     );
   }
 
-  Widget _statCard({
+  Widget _summaryCard({
     required IconData icon,
     required String title,
     required String value,
   }) {
     return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 28),
+            Icon(
+              icon,
+              size: 27,
+            ),
+
             const SizedBox(height: 10),
+
             Text(
               title,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: Colors.grey.shade600,
               ),
             ),
+
             const SizedBox(height: 5),
+
             Text(
               value,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              overflow:
+                  TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -535,41 +523,106 @@ class HomeScreen extends StatelessWidget {
   Widget _actionButton(
     BuildContext context, {
     required IconData icon,
-    required String title,
-    required VoidCallback onTap,
+    required String label,
+    required VoidCallback onPressed,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        height: 105,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.shade300,
+    return SizedBox(
+      height: 95,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 28,
+                ),
+
+                const SizedBox(height: 7),
+
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 28,
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(
+    String category,
+  ) {
+    switch (category) {
+      case 'Food':
+        return Icons.restaurant;
+
+      case 'Transport':
+        return Icons.directions_car;
+
+      case 'Shopping':
+        return Icons.shopping_bag;
+
+      case 'Bills':
+        return Icons.receipt;
+
+      case 'Entertainment':
+        return Icons.movie;
+
+      case 'Health':
+        return Icons.health_and_safety;
+
+      case 'Education':
+        return Icons.school;
+
+      default:
+        return Icons.category;
+    }
+  }
+
+  void _showLogoutDialog(
+    BuildContext context,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text(
+            'Are you sure you want to logout?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _logout(context);
+              },
+              child: const Text('Logout'),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
