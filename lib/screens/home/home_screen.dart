@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+
 import '../../models/expense_model.dart';
 import '../../services/expense_service.dart';
 import '../expenses/add_expense_screen.dart';
 import '../expenses/expense_list_screen.dart';
 import '../budget/budget_screen.dart';
+import '../analytics/analytics_screen.dart';
+
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
