@@ -1,4 +1,5 @@
- import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -51,341 +52,227 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
 
-    final displayName =
-        user?.displayName?.isNotEmpty == true
-            ? user!.displayName!
-            : user?.email?.split('@').first ?? 'User';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Smart Expense Tracker',
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text('User not logged in'),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Logout',
-            icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutDialog(context),
-          ),
-        ],
-      ),
+      );
+    }
 
-      body: StreamBuilder<List<Expense>>(
-        stream: _expenseService.getExpenses(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+    return StreamBuilder<
+        DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, userSnapshot) {
+        final userData = userSnapshot.data?.data();
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'Unable to load expenses.\n\n'
-                  '${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
+        final firstName =
+            userData?['firstName']
+                    ?.toString()
+                    .trim()
+                    .isNotEmpty ==
+                true
+            ? userData!['firstName']
+                .toString()
+                .trim()
+            : 'User';
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'Smart Expense Tracker',
+            ),
+            actions: [
+              IconButton(
+                tooltip: 'Logout',
+                icon: const Icon(Icons.logout),
+                onPressed: () =>
+                    _showLogoutDialog(context),
               ),
-            );
-          }
+            ],
+          ),
 
-          final expenses =
-              snapshot.data ?? <Expense>[];
+          body: StreamBuilder<List<Expense>>(
+            stream: _expenseService.getExpenses(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState ==
+                  ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-          double totalExpenses = 0;
-          double currentMonthExpenses = 0;
-
-          for (final expense in expenses) {
-            totalExpenses += expense.amount;
-
-            if (_isCurrentMonth(expense.date)) {
-              currentMonthExpenses += expense.amount;
-            }
-          }
-
-          final recentExpenses = [...expenses]
-            ..sort(
-              (a, b) => b.date.compareTo(a.date),
-            );
-
-          final recent =
-              recentExpenses.take(5).toList();
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              await Future.delayed(
-                const Duration(milliseconds: 500),
-              );
-            },
-            child: ListView(
-              physics:
-                  const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Greeting
-                Text(
-                  'Hello, $displayName 👋',
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                Text(
-                  'Manage your expenses smartly.',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Total Spending Card
-                Card(
+              if (snapshot.hasError) {
+                return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    child: Text(
+                      'Unable to load expenses.\n\n'
+                      '${snapshot.error}',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+
+              final expenses =
+                  snapshot.data ?? <Expense>[];
+
+              double totalExpenses = 0;
+              double currentMonthExpenses = 0;
+
+              for (final expense in expenses) {
+                totalExpenses += expense.amount;
+
+                if (_isCurrentMonth(expense.date)) {
+                  currentMonthExpenses +=
+                      expense.amount;
+                }
+              }
+
+              final recentExpenses = [...expenses]
+                ..sort(
+                  (a, b) =>
+                      b.date.compareTo(a.date),
+                );
+
+              final recent =
+                  recentExpenses.take(5).toList();
+
+              return RefreshIndicator(
+                onRefresh: () async {
+                  await Future.delayed(
+                    const Duration(
+                      milliseconds: 500,
+                    ),
+                  );
+                },
+                child: ListView(
+                  physics:
+                      const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Greeting
+                    Text(
+                      'Welcome, $firstName 👋',
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 5),
+
+                    Text(
+                      'Manage your expenses smartly.',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Total Spending Card
+                    Card(
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              child: const Icon(
-                                Icons
-                                    .account_balance_wallet,
-                              ),
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  child: const Icon(
+                                    Icons
+                                        .account_balance_wallet,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Total Spending',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight:
+                                        FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Total Spending',
-                              style: TextStyle(
-                                fontSize: 17,
+
+                            const SizedBox(height: 15),
+
+                            Text(
+                              _formatAmount(
+                                totalExpenses,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 30,
                                 fontWeight:
-                                    FontWeight.w600,
+                                    FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
+                      ),
+                    ),
 
-                        const SizedBox(height: 15),
+                    const SizedBox(height: 15),
 
-                        Text(
-                          _formatAmount(totalExpenses),
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
+                    // Summary Cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _summaryCard(
+                            icon:
+                                Icons.calendar_month,
+                            title: 'This Month',
+                            value: _formatAmount(
+                              currentMonthExpenses,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        Expanded(
+                          child: _summaryCard(
+                            icon:
+                                Icons.receipt_long,
+                            title: 'Transactions',
+                            value:
+                                '${expenses.length}',
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
 
-                const SizedBox(height: 15),
+                    const SizedBox(height: 25),
 
-                // Summary Cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: _summaryCard(
-                        icon: Icons.calendar_month,
-                        title: 'This Month',
-                        value: _formatAmount(
-                          currentMonthExpenses,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    Expanded(
-                      child: _summaryCard(
-                        icon: Icons.receipt_long,
-                        title: 'Transactions',
-                        value:
-                            '${expenses.length}',
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 25),
-
-                // Quick Actions
-                const Text(
-                  'Quick Actions',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Existing 3 Quick Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: _actionButton(
-                        context,
-                        icon: Icons.add,
-                        label: 'Add Expense',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  AddExpenseScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    Expanded(
-                      child: _actionButton(
-                        context,
-                        icon: Icons.list_alt,
-                        label: 'All Expenses',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ExpenseListScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    Expanded(
-                      child: _actionButton(
-                        context,
-                        icon: Icons.account_balance,
-                        label: 'Budget',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  BudgetScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Analytics Button
-                SizedBox(
-                  height: 55,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              AnalyticsScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.analytics,
-                    ),
-                    label: const Text(
-                      'View Analytics & Reports',
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
-                // Recent Expenses Header
-                Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-                  children: [
+                    // Quick Actions
                     const Text(
-                      'Recent Expenses',
+                      'Quick Actions',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    if (expenses.isNotEmpty)
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
+                    const SizedBox(height: 12),
+
+                    // Quick Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _actionButton(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ExpenseListScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text('View All'),
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                // Recent Expenses
-                if (recent.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.all(30),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 50,
-                            color:
-                                Colors.grey.shade400,
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          const Text(
-                            'No expenses yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
-                          ),
-
-                          const SizedBox(height: 5),
-
-                          Text(
-                            'Start tracking your expenses.',
-                            style: TextStyle(
-                              color:
-                                  Colors.grey.shade600,
-                            ),
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          ElevatedButton.icon(
+                            icon: Icons.add,
+                            label: 'Add Expense',
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -395,83 +282,241 @@ class HomeScreen extends StatelessWidget {
                                 ),
                               );
                             },
-                            icon: const Icon(
-                              Icons.add,
-                            ),
-                            label: const Text(
-                              'Add First Expense',
-                            ),
                           ),
-                        ],
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: _actionButton(
+                            context,
+                            icon: Icons.list_alt,
+                            label: 'All Expenses',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ExpenseListScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: _actionButton(
+                            context,
+                            icon:
+                                Icons.account_balance,
+                            label: 'Budget',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      BudgetScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Analytics Button
+                    SizedBox(
+                      height: 55,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  AnalyticsScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.analytics,
+                        ),
+                        label: const Text(
+                          'View Analytics & Reports',
+                        ),
                       ),
                     ),
-                  )
-                else
-                  ...recent.map(
-                    (expense) {
-                      return Card(
-                        margin:
-                            const EdgeInsets.only(
-                          bottom: 10,
+
+                    const SizedBox(height: 25),
+
+                    // Recent Expenses Header
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Recent Expenses',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight:
+                                FontWeight.bold,
+                          ),
                         ),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(
-                              _getCategoryIcon(
-                                expense.category,
+
+                        if (expenses.isNotEmpty)
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ExpenseListScreen(),
+                                ),
+                              );
+                            },
+                            child:
+                                const Text('View All'),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Recent Expenses
+                    if (recent.isEmpty)
+                      Card(
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.all(30),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.receipt_long,
+                                size: 50,
+                                color:
+                                    Colors.grey.shade400,
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              const Text(
+                                'No expenses yet',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight:
+                                      FontWeight.w600,
+                                ),
+                              ),
+
+                              const SizedBox(height: 5),
+
+                              Text(
+                                'Start tracking your expenses.',
+                                style: TextStyle(
+                                  color:
+                                      Colors.grey.shade600,
+                                ),
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              AddExpenseScreen(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.add,
+                                ),
+                                label: const Text(
+                                  'Add First Expense',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      ...recent.map(
+                        (expense) {
+                          return Card(
+                            margin:
+                                const EdgeInsets.only(
+                              bottom: 10,
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                child: Icon(
+                                  _getCategoryIcon(
+                                    expense.category,
+                                  ),
+                                ),
+                              ),
+
+                              title: Text(
+                                expense.title,
+                                style:
+                                    const TextStyle(
+                                  fontWeight:
+                                      FontWeight.w600,
+                                ),
+                              ),
+
+                              subtitle: Text(
+                                '${expense.category} • '
+                                '${_dateFormat.format(
+                                  expense.date,
+                                )}',
+                              ),
+
+                              trailing: Text(
+                                _formatAmount(
+                                  expense.amount,
+                                ),
+                                style:
+                                    const TextStyle(
+                                  fontWeight:
+                                      FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
+                          );
+                        },
+                      ),
 
-                          title: Text(
-                            expense.title,
-                            style: const TextStyle(
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
-                          ),
+                    const SizedBox(height: 80),
+                  ],
+                ),
+              );
+            },
+          ),
 
-                          subtitle: Text(
-                            '${expense.category} • '
-                            '${_dateFormat.format(expense.date)}',
-                          ),
-
-                          trailing: Text(
-                            _formatAmount(
-                              expense.amount,
-                            ),
-                            style: const TextStyle(
-                              fontWeight:
-                                  FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                const SizedBox(height: 80),
-              ],
-            ),
-          );
-        },
-      ),
-
-      // Floating Add Expense Button
-      floatingActionButton:
-          FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  AddExpenseScreen(),
-            ),
-          );
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Expense'),
-      ),
+          // Floating Add Expense Button
+          floatingActionButton:
+              FloatingActionButton.extended(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      AddExpenseScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Expense'),
+          ),
+        );
+      },
     );
   }
 
@@ -507,8 +552,7 @@ class HomeScreen extends StatelessWidget {
             Text(
               value,
               maxLines: 1,
-              overflow:
-                  TextOverflow.ellipsis,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,

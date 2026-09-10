@@ -41,6 +41,9 @@ dependencies:
   provider: ^6.1.5+1
   intl: ^0.20.3
   fl_chart: ^1.2.0
+  firebase_storage: ^13.5.0
+  image_picker: ^1.2.3
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
