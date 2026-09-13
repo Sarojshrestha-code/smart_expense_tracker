@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../services/expense_service.dart';
 
@@ -6,43 +6,41 @@ class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
 
   @override
-  State<AddExpenseScreen> createState() =>
-      _AddExpenseScreenState();
+  State<AddExpenseScreen> createState() => _AddExpenseScreenState();
 }
 
-class _AddExpenseScreenState
-    extends State<AddExpenseScreen> {
+class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
-  final _descriptionController =
-      TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _customCategoryController = TextEditingController();
+  final _expenseService = ExpenseService();
 
-  final ExpenseService _expenseService =
-      ExpenseService();
-
-  String _category = 'Food';
-
-  DateTime _selectedDate = DateTime.now();
-
-  bool _loading = false;
-
-  final List<String> _categories = [
+  final _categories = [
     'Food',
+    'Gloceries',
+    'Rent',
     'Transport',
     'Shopping',
     'Bills',
     'Entertainment',
     'Health',
     'Education',
-    'Other',
+    'Gym',
+    'Utilities',
+    'Other'
   ];
+
+  String _category = 'Food';
+  DateTime _selectedDate = DateTime.now();
+  bool _loading = false;
 
   @override
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
-
+    _customCategoryController.dispose();
     super.dispose();
   }
 
@@ -55,193 +53,140 @@ class _AddExpenseScreenState
     );
 
     if (selected != null) {
-      setState(() {
-        _selectedDate = selected;
-      });
+      setState(() => _selectedDate = selected);
     }
   }
 
-  Future<void> _saveExpense() async {
+  Future<void> _addExpense() async {
     final title = _titleController.text.trim();
-
-    final amount = double.tryParse(
-      _amountController.text.trim(),
-    );
+    final amount = double.tryParse(_amountController.text.trim());
 
     if (title.isEmpty) {
       _showMessage('Please enter expense title');
       return;
     }
-
     if (amount == null || amount <= 0) {
       _showMessage('Please enter a valid amount');
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    var finalCategory = _category;
+    if (_category == 'Custom') {
+      finalCategory = _customCategoryController.text.trim();
+      if (finalCategory.isEmpty) {
+        _showMessage('Please enter your custom category');
+        return;
+      }
+    }
+
+    setState(() => _loading = true);
 
     try {
       await _expenseService.addExpense(
         title: title,
         amount: amount,
-        category: _category,
-        description:
-            _descriptionController.text.trim(),
+        category: finalCategory,
+        description: _descriptionController.text.trim(),
         date: _selectedDate,
       );
 
-      if (!mounted) return;
-
-      _showMessage('Expense added successfully');
-
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (!mounted) return;
-
-      _showMessage(
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    } finally {
       if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+        _showMessage(e.toString().replaceFirst('Exception: ', ''));
       }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Expense'),
-      ),
+      appBar: AppBar(title: const Text('Add Expense')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Expense Title',
-                hintText: 'Example: Lunch',
-                prefixIcon: Icon(Icons.edit),
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
             TextField(
               controller: _amountController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(
+              keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: const InputDecoration(
                 labelText: 'Amount',
-                hintText: 'Example: 250',
                 prefixText: 'Rs. ',
-                prefixIcon: Icon(Icons.money),
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
               initialValue: _category,
               decoration: const InputDecoration(
                 labelText: 'Category',
-                prefixIcon:
-                    Icon(Icons.category),
                 border: OutlineInputBorder(),
               ),
-              items: _categories.map((category) {
-                return DropdownMenuItem<String>(
-                  value: category,
-                  child: Text(category),
-                );
-              }).toList(),
+              items: _categories
+                  .map(
+                    (value) =>
+                        DropdownMenuItem(value: value, child: Text(value)),
+                  )
+                  .toList(),
               onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _category = value;
-                  });
-                }
+                if (value != null) setState(() => _category = value);
               },
             ),
-
+            if (_category == 'Custom') ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _customCategoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Custom Category',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
-
             InkWell(
               onTap: _selectDate,
               child: InputDecorator(
-                decoration:
-                    const InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Date',
-                  prefixIcon:
-                      Icon(Icons.calendar_today),
                   border: OutlineInputBorder(),
                 ),
                 child: Text(
-                  '${_selectedDate.day}/'
-                  '${_selectedDate.month}/'
-                  '${_selectedDate.year}',
+                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             TextField(
-              controller:
-                  _descriptionController,
+              controller: _descriptionController,
               maxLines: 3,
               decoration: const InputDecoration(
                 labelText: 'Description',
-                hintText:
-                    'Optional description',
-                prefixIcon:
-                    Icon(Icons.description),
                 border: OutlineInputBorder(),
               ),
             ),
-
-            const SizedBox(height: 25),
-
-            SizedBox(
-              height: 55,
-              child: ElevatedButton.icon(
-                onPressed:
-                    _loading ? null : _saveExpense,
-                icon: _loading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child:
-                            CircularProgressIndicator(),
-                      )
-                    : const Icon(Icons.save),
-                label: Text(
-                  _loading
-                      ? 'Saving...'
-                      : 'Save Expense',
-                  style: const TextStyle(
-                    fontSize: 17,
-                  ),
-                ),
-              ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loading ? null : _addExpense,
+              child: Text(_loading ? 'Adding...' : 'Add Expense'),
             ),
           ],
         ),

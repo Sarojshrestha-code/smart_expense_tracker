@@ -1,22 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 class UserService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  final FirebaseStorage _storage =
-      FirebaseStorage.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  // ============================================================
+  // CREATE USER PROFILE
+  // ============================================================
 
   Future<void> createUserProfile({
     required String firstName,
     required String lastName,
     required String gender,
-    required DateTime dateOfBirth,
     required String email,
   }) async {
     final user = _auth.currentUser;
@@ -30,13 +31,16 @@ class UserService {
       'firstName': firstName,
       'lastName': lastName,
       'gender': gender,
-      'dateOfBirth': dateOfBirth.toIso8601String(),
       'email': email,
       'photoUrl': '',
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  // ============================================================
+  // GET USER PROFILE
+  // ============================================================
 
   Future<Map<String, dynamic>?> getUserProfile() async {
     final user = _auth.currentUser;
@@ -53,11 +57,14 @@ class UserService {
     return doc.data();
   }
 
+  // ============================================================
+  // UPDATE USER PROFILE
+  // ============================================================
+
   Future<void> updateUserProfile({
     required String firstName,
     required String lastName,
     required String gender,
-    required DateTime dateOfBirth,
   }) async {
     final user = _auth.currentUser;
 
@@ -65,17 +72,17 @@ class UserService {
       throw Exception('User not logged in');
     }
 
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .update({
+    await _firestore.collection('users').doc(user.uid).update({
       'firstName': firstName,
       'lastName': lastName,
       'gender': gender,
-      'dateOfBirth': dateOfBirth.toIso8601String(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  // ============================================================
+  // UPLOAD PROFILE PHOTO
+  // ============================================================
 
   Future<String> uploadProfilePhoto() async {
     final user = _auth.currentUser;
@@ -96,31 +103,33 @@ class UserService {
       throw Exception('No image selected');
     }
 
+    final bytes = await image.readAsBytes();
+
     final storageRef = _storage
         .ref()
         .child('profile_images')
-        .child('${user.uid}.jpg');
+        .child(user.uid);
 
     await storageRef.putData(
-      await image.readAsBytes(),
+      bytes,
       SettableMetadata(
-        contentType: 'image/jpeg',
+        contentType: image.mimeType ?? 'image/jpeg',
       ),
     );
 
-    final downloadUrl =
-        await storageRef.getDownloadURL();
+    final downloadUrl = await storageRef.getDownloadURL();
 
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .update({
+    await _firestore.collection('users').doc(user.uid).update({
       'photoUrl': downloadUrl,
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
     return downloadUrl;
   }
+
+  // ============================================================
+  // DELETE ACCOUNT
+  // ============================================================
 
   Future<void> deleteAccount({
     required String password,
@@ -139,22 +148,24 @@ class UserService {
 
     // Re-authentication is required by Firebase
     // before permanently deleting an account.
-    final credential =
-        EmailAuthProvider.credential(
+    final credential = EmailAuthProvider.credential(
       email: user.email!,
       password: password,
     );
 
-    await user.reauthenticateWithCredential(
-      credential,
-    );
+    await user.reauthenticateWithCredential(credential);
 
     // Delete profile photo if it exists.
+    //
+    // The upload path is:
+    // profile_images/{user.uid}
+    //
+    // So we delete the same reference here.
     try {
       await _storage
           .ref()
           .child('profile_images')
-          .child('${user.uid}.jpg')
+          .child(user.uid)
           .delete();
     } catch (_) {
       // Ignore if no profile image exists.

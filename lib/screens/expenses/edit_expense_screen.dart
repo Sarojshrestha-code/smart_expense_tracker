@@ -1,5 +1,4 @@
-
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 
 import '../../models/expense_model.dart';
 import '../../services/expense_service.dart';
@@ -17,41 +16,74 @@ class EditExpenseScreen extends StatefulWidget {
       _EditExpenseScreenState();
 }
 
-class _EditExpenseScreenState extends State<EditExpenseScreen> {
-  final _titleController = TextEditingController();
-  final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
+class _EditExpenseScreenState
+    extends State<EditExpenseScreen> {
+  final _titleController =
+      TextEditingController();
 
-  final ExpenseService _expenseService = ExpenseService();
+  final _amountController =
+      TextEditingController();
+
+  final _descriptionController =
+      TextEditingController();
+
+  final _customCategoryController =
+      TextEditingController();
+
+  final ExpenseService _expenseService =
+      ExpenseService();
 
   String _category = 'Food';
+
   late DateTime _selectedDate;
 
   bool _loading = false;
 
   final List<String> _categories = [
     'Food',
+    'Gloceries',
+    'Rent',
     'Transport',
     'Shopping',
     'Bills',
     'Entertainment',
     'Health',
     'Education',
-    'Other',
+    'Gym',
+    'Utilities',
+    'Other'
   ];
 
   @override
   void initState() {
     super.initState();
 
-    _titleController.text = widget.expense.title;
+    _titleController.text =
+        widget.expense.title;
+
     _amountController.text =
-        widget.expense.amount.toStringAsFixed(2);
+        widget.expense.amount
+            .toStringAsFixed(2);
+
     _descriptionController.text =
         widget.expense.description;
 
-    _category = widget.expense.category;
-    _selectedDate = widget.expense.date;
+    _selectedDate =
+        widget.expense.date;
+
+    // Check whether the existing category
+    // is one of our standard categories.
+    if (_categories.contains(
+        widget.expense.category)) {
+      _category =
+          widget.expense.category;
+    } else {
+      // Existing custom category
+      _category = 'Custom';
+
+      _customCategoryController.text =
+          widget.expense.category;
+    }
   }
 
   @override
@@ -59,12 +91,14 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     _titleController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
+    _customCategoryController.dispose();
 
     super.dispose();
   }
 
   Future<void> _selectDate() async {
-    final selected = await showDatePicker(
+    final selected =
+        await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
@@ -79,20 +113,41 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
   }
 
   Future<void> _updateExpense() async {
-    final title = _titleController.text.trim();
+    final title =
+        _titleController.text.trim();
 
     final amount = double.tryParse(
       _amountController.text.trim(),
     );
 
     if (title.isEmpty) {
-      _showMessage('Please enter expense title');
+      _showMessage(
+        'Please enter expense title',
+      );
       return;
     }
 
     if (amount == null || amount <= 0) {
-      _showMessage('Please enter a valid amount');
+      _showMessage(
+        'Please enter a valid amount',
+      );
       return;
+    }
+
+    String finalCategory = _category;
+
+    if (_category == 'Custom') {
+      final customCategory =
+          _customCategoryController.text.trim();
+
+      if (customCategory.isEmpty) {
+        _showMessage(
+          'Please enter your custom category',
+        );
+        return;
+      }
+
+      finalCategory = customCategory;
     }
 
     setState(() {
@@ -105,8 +160,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
         userId: widget.expense.userId,
         title: title,
         amount: amount,
-        category: _category,
-        description: _descriptionController.text.trim(),
+        category: finalCategory,
+        description:
+            _descriptionController.text.trim(),
         date: _selectedDate,
       );
 
@@ -116,14 +172,19 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
       if (!mounted) return;
 
-      _showMessage('Expense updated successfully');
+      _showMessage(
+        'Expense updated successfully',
+      );
 
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
 
       _showMessage(
-        e.toString().replaceFirst('Exception: ', ''),
+        e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        ),
       );
     } finally {
       if (mounted) {
@@ -136,7 +197,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+      ),
     );
   }
 
@@ -149,30 +212,38 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
+              decoration:
+                  const InputDecoration(
                 labelText: 'Expense Title',
-                prefixIcon: Icon(Icons.edit),
-                border: OutlineInputBorder(),
+                prefixIcon:
+                    Icon(Icons.edit),
+                border:
+                    OutlineInputBorder(),
               ),
             ),
 
             const SizedBox(height: 16),
 
             TextField(
-              controller: _amountController,
+              controller:
+                  _amountController,
               keyboardType:
                   const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(
+              decoration:
+                  const InputDecoration(
                 labelText: 'Amount',
                 prefixText: 'Rs. ',
-                prefixIcon: Icon(Icons.money),
-                border: OutlineInputBorder(),
+                prefixIcon:
+                    Icon(Icons.money),
+                border:
+                    OutlineInputBorder(),
               ),
             ),
 
@@ -180,35 +251,73 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
             DropdownButtonFormField<String>(
               initialValue: _category,
-              decoration: const InputDecoration(
+              decoration:
+                  const InputDecoration(
                 labelText: 'Category',
-                prefixIcon: Icon(Icons.category),
-                border: OutlineInputBorder(),
+                prefixIcon:
+                    Icon(Icons.category),
+                border:
+                    OutlineInputBorder(),
               ),
-              items: _categories.map((category) {
-                return DropdownMenuItem<String>(
-                  value: category,
-                  child: Text(category),
-                );
-              }).toList(),
+              items: _categories.map(
+                (category) {
+                  return DropdownMenuItem<
+                      String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                },
+              ).toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() {
                     _category = value;
+
+                    if (_category !=
+                        'Custom') {
+                      _customCategoryController
+                          .clear();
+                    }
                   });
                 }
               },
             ),
+
+            if (_category == 'Others') ...[
+              const SizedBox(height: 16),
+
+              TextField(
+                controller:
+                    _customCategoryController,
+                textCapitalization:
+                    TextCapitalization.words,
+                decoration:
+                    const InputDecoration(
+                  labelText:
+                      'Others Category',
+                  hintText:
+                      'Example: Gym, Pet, Travel',
+                  prefixIcon:
+                      Icon(Icons.edit_note),
+                  border:
+                      OutlineInputBorder(),
+                ),
+              ),
+            ],
 
             const SizedBox(height: 16),
 
             InkWell(
               onTap: _selectDate,
               child: InputDecorator(
-                decoration: const InputDecoration(
+                decoration:
+                    const InputDecoration(
                   labelText: 'Date',
-                  prefixIcon: Icon(Icons.calendar_today),
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(
+                    Icons.calendar_today,
+                  ),
+                  border:
+                      OutlineInputBorder(),
                 ),
                 child: Text(
                   '${_selectedDate.day}/'
@@ -221,13 +330,18 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
             const SizedBox(height: 16),
 
             TextField(
-              controller: _descriptionController,
+              controller:
+                  _descriptionController,
               maxLines: 3,
-              decoration: const InputDecoration(
+              decoration:
+                  const InputDecoration(
                 labelText: 'Description',
-                hintText: 'Optional description',
-                prefixIcon: Icon(Icons.description),
-                border: OutlineInputBorder(),
+                hintText:
+                    'Optional description',
+                prefixIcon:
+                    Icon(Icons.description),
+                border:
+                    OutlineInputBorder(),
               ),
             ),
 
@@ -237,7 +351,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
               height: 55,
               child: ElevatedButton.icon(
                 onPressed:
-                    _loading ? null : _updateExpense,
+                    _loading
+                        ? null
+                        : _updateExpense,
                 icon: _loading
                     ? const SizedBox(
                         width: 20,
@@ -245,17 +361,22 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                         child:
                             CircularProgressIndicator(),
                       )
-                    : const Icon(Icons.update),
+                    : const Icon(
+                        Icons.update,
+                      ),
                 label: Text(
                   _loading
                       ? 'Updating...'
                       : 'Update Expense',
-                  style: const TextStyle(
+                  style:
+                      const TextStyle(
                     fontSize: 17,
                   ),
                 ),
               ),
             ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),

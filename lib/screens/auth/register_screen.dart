@@ -17,16 +17,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController =
-      TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
 
   bool _loading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   String? _selectedGender;
-  DateTime? _dateOfBirth;
 
   final List<String> _genders = [
     'Male',
@@ -35,42 +35,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'Prefer not to say',
   ];
 
-  Future<void> _selectDateOfBirth() async {
-    final now = DateTime.now();
-
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime(
-        now.year - 18,
-        now.month,
-        now.day,
-      ),
-      firstDate: DateTime(1900),
-      lastDate: now,
-    );
-
-    if (selectedDate != null) {
-      setState(() {
-        _dateOfBirth = selectedDate;
-      });
-    }
-  }
-
   Future<void> _register() async {
-    final firstName =
-        _firstNameController.text.trim();
-
-    final lastName =
-        _lastNameController.text.trim();
-
-    final email =
-        _emailController.text.trim();
-
-    final password =
-        _passwordController.text;
-
-    final confirmPassword =
-        _confirmPasswordController.text;
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
     if (firstName.isEmpty ||
         lastName.isEmpty ||
@@ -79,9 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please fill all required fields',
-          ),
+          content: Text('Please fill all required fields'),
         ),
       );
       return;
@@ -91,17 +59,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select your gender'),
-        ),
-      );
-      return;
-    }
-
-    if (_dateOfBirth == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please select your date of birth',
-          ),
         ),
       );
       return;
@@ -142,7 +99,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         firstName: firstName,
         lastName: lastName,
         gender: _selectedGender!,
-        dateOfBirth: _dateOfBirth!,
         email: email,
       );
 
@@ -159,8 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              const EmailVerificationScreen(),
+          builder: (_) => const EmailVerificationScreen(),
         ),
         (route) => false,
       );
@@ -183,8 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               'Password must be at least 6 characters.';
           break;
         default:
-          message =
-              e.message ?? 'Registration failed.';
+          message = e.message ?? 'Registration failed.';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -199,9 +153,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         SnackBar(
           content: Text(
             e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            ),
+                  'Exception: ',
+                  '',
+                ),
           ),
         ),
       );
@@ -270,7 +224,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextCapitalization.words,
                   decoration: const InputDecoration(
                     labelText: 'Last Name',
-                    prefixIcon: Icon(Icons.person_outline),
+                    prefixIcon:
+                        Icon(Icons.person_outline),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -299,28 +254,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 const SizedBox(height: 16),
 
-                InkWell(
-                  onTap: _selectDateOfBirth,
-                  child: InputDecorator(
-                    decoration:
-                        const InputDecoration(
-                      labelText: 'Date of Birth',
-                      prefixIcon:
-                          Icon(Icons.calendar_today),
-                      border: OutlineInputBorder(),
-                    ),
-                    child: Text(
-                      _dateOfBirth == null
-                          ? 'Select date of birth'
-                          : '${_dateOfBirth!.day.toString().padLeft(2, '0')}/'
-                              '${_dateOfBirth!.month.toString().padLeft(2, '0')}/'
-                              '${_dateOfBirth!.year}',
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
                 TextField(
                   controller: _emailController,
                   keyboardType:
@@ -336,11 +269,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword =
+                              !_obscurePassword;
+                        });
+                      },
+                    ),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
 
@@ -349,12 +295,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextField(
                   controller:
                       _confirmPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: _obscureConfirmPassword,
+                  decoration: InputDecoration(
                     labelText: 'Confirm Password',
                     prefixIcon:
-                        Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(),
+                        const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword =
+                              !_obscureConfirmPassword;
+                        });
+                      },
+                    ),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
 
@@ -376,7 +335,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Already have an account? ',
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Login'),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
               ],
             ),
           ),

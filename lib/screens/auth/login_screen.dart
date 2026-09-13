@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _loading = false;
   bool _resettingPassword = false;
+  bool _obscurePassword = true;
 
   Future<void> _login() async {
     final email = _emailController.text.trim();
@@ -47,23 +48,20 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = credential.user;
 
       if (user == null) {
-        throw Exception('Unable to login. Please try again.');
+        throw Exception(
+          'Unable to login. Please try again.',
+        );
       }
 
-      // Refresh user information from Firebase.
       await user.reload();
 
       final refreshedUser =
           FirebaseAuth.instance.currentUser;
 
-      // IMPORTANT:
-      // Do not allow unverified users into the application.
       if (refreshedUser == null ||
           !refreshedUser.emailVerified) {
         if (!mounted) return;
 
-        // Keep the user signed in temporarily so the
-        // verification screen can resend the email.
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -85,9 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      // MainScreen is controlled by main.dart.
-      // Refreshing auth state will take the verified user
-      // to the main application.
       Navigator.pushReplacementNamed(
         context,
         '/main',
@@ -99,17 +94,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
       switch (e.code) {
         case 'user-not-found':
-          message = 'No account found with this email.';
+          message =
+              'No account found with this email.';
           break;
         case 'wrong-password':
         case 'invalid-credential':
-          message = 'Incorrect email or password.';
+          message =
+              'Incorrect email or password.';
           break;
         case 'invalid-email':
-          message = 'Please enter a valid email address.';
+          message =
+              'Please enter a valid email address.';
           break;
         case 'user-disabled':
-          message = 'This account has been disabled.';
+          message =
+              'This account has been disabled.';
           break;
         default:
           message = e.message ?? 'Login failed.';
@@ -126,7 +125,10 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
+            e.toString().replaceFirst(
+                  'Exception: ',
+                  '',
+                ),
           ),
         ),
       );
@@ -178,13 +180,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       switch (e.code) {
         case 'user-not-found':
-          message = 'No account found with this email.';
+          message =
+              'No account found with this email.';
           break;
         case 'invalid-email':
-          message = 'Please enter a valid email address.';
+          message =
+              'Please enter a valid email address.';
           break;
         default:
-          message = e.message ?? 'Could not send reset email.';
+          message =
+              e.message ?? 'Could not send reset email.';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -198,7 +203,10 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
+            e.toString().replaceFirst(
+                  'Exception: ',
+                  '',
+                ),
           ),
         ),
       );
@@ -227,7 +235,8 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Center(
             child: SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment:
+                    CrossAxisAlignment.stretch,
                 children: [
                   const Icon(
                     Icons.account_balance_wallet,
@@ -269,11 +278,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   TextField(
                     controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword =
+                                !_obscurePassword;
+                          });
+                        },
+                      ),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
 
@@ -289,7 +311,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
+                              child:
+                                  CircularProgressIndicator(
                                 strokeWidth: 2,
                               ),
                             )
@@ -304,7 +327,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _loading ? null : _login,
+                      onPressed:
+                          _loading ? null : _login,
                       child: _loading
                           ? const CircularProgressIndicator()
                           : const Text(
@@ -316,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
 
                   Row(
                     mainAxisAlignment:
