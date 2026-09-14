@@ -16,74 +16,113 @@ class EditExpenseScreen extends StatefulWidget {
       _EditExpenseScreenState();
 }
 
-class _EditExpenseScreenState
-    extends State<EditExpenseScreen> {
-  final _titleController =
-      TextEditingController();
+class _EditExpenseScreenState extends State<EditExpenseScreen> {
+  final _titleController = TextEditingController();
+  final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
-  final _amountController =
-      TextEditingController();
+  final ExpenseService _expenseService = ExpenseService();
 
-  final _descriptionController =
-      TextEditingController();
-
-  final _customCategoryController =
-      TextEditingController();
-
-  final ExpenseService _expenseService =
-      ExpenseService();
-
-  String _category = 'Food';
+  String _category = 'Food & Dining';
 
   late DateTime _selectedDate;
 
   bool _loading = false;
 
   final List<String> _categories = [
-    'Food',
-    'Gloceries',
-    'Rent',
-    'Transport',
+    'Food & Dining',
+    'Transportation',
+    'Utilities & Bills',
+    'Housing',
+    'Entertainment & Leisure',
     'Shopping',
-    'Bills',
-    'Entertainment',
-    'Health',
-    'Education',
-    'Gym',
-    'Utilities',
-    'Other'
+    'Subscriptions',
+    'Health & Medical',
+    'Other / Miscellaneous',
   ];
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Food & Dining':
+        return Icons.restaurant;
+
+      case 'Transportation':
+        return Icons.directions_car;
+
+      case 'Utilities & Bills':
+        return Icons.lightbulb;
+
+      case 'Housing':
+        return Icons.home;
+
+      case 'Entertainment & Leisure':
+        return Icons.movie;
+
+      case 'Shopping':
+        return Icons.shopping_bag;
+
+      case 'Subscriptions':
+        return Icons.subscriptions;
+
+      case 'Health & Medical':
+        return Icons.health_and_safety;
+
+      case 'Other / Miscellaneous':
+        return Icons.category;
+
+      default:
+        return Icons.category;
+    }
+  }
+
+  String _convertOldCategory(String category) {
+    switch (category) {
+      case 'Food':
+        return 'Food & Dining';
+
+      case 'Transport':
+        return 'Transportation';
+
+      case 'Bills':
+        return 'Utilities & Bills';
+
+      case 'Entertainment':
+        return 'Entertainment & Leisure';
+
+      case 'Health':
+        return 'Health & Medical';
+
+      case 'Education':
+        return 'Other / Miscellaneous';
+
+      case 'Other':
+        return 'Other / Miscellaneous';
+
+      default:
+        if (_categories.contains(category)) {
+          return category;
+        }
+
+        return 'Other / Miscellaneous';
+    }
+  }
 
   @override
   void initState() {
     super.initState();
 
-    _titleController.text =
-        widget.expense.title;
+    _titleController.text = widget.expense.title;
 
     _amountController.text =
-        widget.expense.amount
-            .toStringAsFixed(2);
+        widget.expense.amount.toStringAsFixed(2);
 
     _descriptionController.text =
         widget.expense.description;
 
-    _selectedDate =
-        widget.expense.date;
+    _category =
+        _convertOldCategory(widget.expense.category);
 
-    // Check whether the existing category
-    // is one of our standard categories.
-    if (_categories.contains(
-        widget.expense.category)) {
-      _category =
-          widget.expense.category;
-    } else {
-      // Existing custom category
-      _category = 'Custom';
-
-      _customCategoryController.text =
-          widget.expense.category;
-    }
+    _selectedDate = widget.expense.date;
   }
 
   @override
@@ -91,14 +130,12 @@ class _EditExpenseScreenState
     _titleController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
-    _customCategoryController.dispose();
 
     super.dispose();
   }
 
   Future<void> _selectDate() async {
-    final selected =
-        await showDatePicker(
+    final selected = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
@@ -113,41 +150,20 @@ class _EditExpenseScreenState
   }
 
   Future<void> _updateExpense() async {
-    final title =
-        _titleController.text.trim();
+    final title = _titleController.text.trim();
 
     final amount = double.tryParse(
       _amountController.text.trim(),
     );
 
     if (title.isEmpty) {
-      _showMessage(
-        'Please enter expense title',
-      );
+      _showMessage('Please enter expense title');
       return;
     }
 
     if (amount == null || amount <= 0) {
-      _showMessage(
-        'Please enter a valid amount',
-      );
+      _showMessage('Please enter a valid amount');
       return;
-    }
-
-    String finalCategory = _category;
-
-    if (_category == 'Custom') {
-      final customCategory =
-          _customCategoryController.text.trim();
-
-      if (customCategory.isEmpty) {
-        _showMessage(
-          'Please enter your custom category',
-        );
-        return;
-      }
-
-      finalCategory = customCategory;
     }
 
     setState(() {
@@ -160,7 +176,7 @@ class _EditExpenseScreenState
         userId: widget.expense.userId,
         title: title,
         amount: amount,
-        category: finalCategory,
+        category: _category,
         description:
             _descriptionController.text.trim(),
         date: _selectedDate,
@@ -182,9 +198,9 @@ class _EditExpenseScreenState
 
       _showMessage(
         e.toString().replaceFirst(
-          'Exception: ',
-          '',
-        ),
+              'Exception: ',
+              '',
+            ),
       );
     } finally {
       if (mounted) {
@@ -197,9 +213,7 @@ class _EditExpenseScreenState
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -217,33 +231,26 @@ class _EditExpenseScreenState
           children: [
             TextField(
               controller: _titleController,
-              decoration:
-                  const InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Expense Title',
-                prefixIcon:
-                    Icon(Icons.edit),
-                border:
-                    OutlineInputBorder(),
+                prefixIcon: Icon(Icons.edit),
+                border: OutlineInputBorder(),
               ),
             ),
 
             const SizedBox(height: 16),
 
             TextField(
-              controller:
-                  _amountController,
+              controller: _amountController,
               keyboardType:
                   const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration:
-                  const InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Amount',
                 prefixText: 'Rs. ',
-                prefixIcon:
-                    Icon(Icons.money),
-                border:
-                    OutlineInputBorder(),
+                prefixIcon: Icon(Icons.money),
+                border: OutlineInputBorder(),
               ),
             ),
 
@@ -251,73 +258,45 @@ class _EditExpenseScreenState
 
             DropdownButtonFormField<String>(
               initialValue: _category,
-              decoration:
-                  const InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Category',
-                prefixIcon:
-                    Icon(Icons.category),
-                border:
-                    OutlineInputBorder(),
+                prefixIcon: Icon(Icons.category),
+                border: OutlineInputBorder(),
               ),
-              items: _categories.map(
-                (category) {
-                  return DropdownMenuItem<
-                      String>(
-                    value: category,
-                    child: Text(category),
-                  );
-                },
-              ).toList(),
+              items: _categories.map((category) {
+                return DropdownMenuItem<String>(
+                  value: category,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getCategoryIcon(category),
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(category),
+                    ],
+                  ),
+                );
+              }).toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() {
                     _category = value;
-
-                    if (_category !=
-                        'Custom') {
-                      _customCategoryController
-                          .clear();
-                    }
                   });
                 }
               },
             ),
-
-            if (_category == 'Others') ...[
-              const SizedBox(height: 16),
-
-              TextField(
-                controller:
-                    _customCategoryController,
-                textCapitalization:
-                    TextCapitalization.words,
-                decoration:
-                    const InputDecoration(
-                  labelText:
-                      'Others Category',
-                  hintText:
-                      'Example: Gym, Pet, Travel',
-                  prefixIcon:
-                      Icon(Icons.edit_note),
-                  border:
-                      OutlineInputBorder(),
-                ),
-              ),
-            ],
 
             const SizedBox(height: 16),
 
             InkWell(
               onTap: _selectDate,
               child: InputDecorator(
-                decoration:
-                    const InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Date',
-                  prefixIcon: Icon(
-                    Icons.calendar_today,
-                  ),
-                  border:
-                      OutlineInputBorder(),
+                  prefixIcon:
+                      Icon(Icons.calendar_today),
+                  border: OutlineInputBorder(),
                 ),
                 child: Text(
                   '${_selectedDate.day}/'
@@ -330,18 +309,15 @@ class _EditExpenseScreenState
             const SizedBox(height: 16),
 
             TextField(
-              controller:
-                  _descriptionController,
+              controller: _descriptionController,
               maxLines: 3,
-              decoration:
-                  const InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Description',
                 hintText:
                     'Optional description',
                 prefixIcon:
                     Icon(Icons.description),
-                border:
-                    OutlineInputBorder(),
+                border: OutlineInputBorder(),
               ),
             ),
 
@@ -351,9 +327,7 @@ class _EditExpenseScreenState
               height: 55,
               child: ElevatedButton.icon(
                 onPressed:
-                    _loading
-                        ? null
-                        : _updateExpense,
+                    _loading ? null : _updateExpense,
                 icon: _loading
                     ? const SizedBox(
                         width: 20,
@@ -361,22 +335,17 @@ class _EditExpenseScreenState
                         child:
                             CircularProgressIndicator(),
                       )
-                    : const Icon(
-                        Icons.update,
-                      ),
+                    : const Icon(Icons.update),
                 label: Text(
                   _loading
                       ? 'Updating...'
                       : 'Update Expense',
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 17,
                   ),
                 ),
               ),
             ),
-
-            const SizedBox(height: 20),
           ],
         ),
       ),
