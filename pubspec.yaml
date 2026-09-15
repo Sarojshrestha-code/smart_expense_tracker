@@ -44,6 +44,8 @@ dependencies:
   firebase_storage: ^13.5.0
   image_picker: ^1.2.3
   shared_preferences: ^2.5.5
+  file_saver: ^0.4.0
+  flutter_file_saver: ^0.10.0
 
   # Data Export & Reports
   pdf: ^3.13.0

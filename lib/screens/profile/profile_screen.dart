@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
@@ -24,7 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _profile;
 
   bool _isLoading = true;
-  bool _isUploading = false;
   bool _isDeleting = false;
 
   @override
@@ -32,6 +31,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadProfile();
   }
+
+  // ------------------------------------------------------------
+  // LOAD PROFILE
+  // ------------------------------------------------------------
 
   Future<void> _loadProfile() async {
     try {
@@ -50,66 +53,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unable to load profile: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to load profile: $e'),
+        ),
+      );
     }
   }
 
-  Future<void> _uploadPhoto() async {
-    if (_isUploading) return;
+  // ------------------------------------------------------------
+  // GET USER FIRST NAME
+  // ------------------------------------------------------------
 
-    setState(() {
-      _isUploading = true;
-    });
+  String _getFirstName() {
+    final firstName = _profile?['firstName']?.toString().trim();
 
+    if (firstName != null && firstName.isNotEmpty) {
+      return firstName;
+    }
+
+    return 'User';
+  }
+
+  // ------------------------------------------------------------
+  // GET USER LAST NAME
+  // ------------------------------------------------------------
+
+  String _getLastName() {
+    return _profile?['lastName']?.toString().trim() ?? '';
+  }
+
+  // ------------------------------------------------------------
+  // GET FULL NAME
+  // ------------------------------------------------------------
+
+  String _getFullName() {
+    final firstName = _getFirstName();
+    final lastName = _getLastName();
+
+    final fullName = '$firstName $lastName'.trim();
+
+    if (fullName.isEmpty) {
+      return 'User';
+    }
+
+    return fullName;
+  }
+
+  // ------------------------------------------------------------
+  // GET EMAIL
+  // ------------------------------------------------------------
+
+  String _getEmail() {
+    final profileEmail =
+        _profile?['email']?.toString().trim() ?? '';
+
+    if (profileEmail.isNotEmpty) {
+      return profileEmail;
+    }
+
+    return _auth.currentUser?.email ?? '';
+  }
+
+  // ------------------------------------------------------------
+  // LOGOUT
+  // ------------------------------------------------------------
+
+  Future<void> _logout() async {
     try {
-      await _userService.uploadProfilePhoto();
-
-      await _loadProfile();
+      await _authService.logout();
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile photo updated successfully.')),
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+        (route) => false,
       );
     } catch (e) {
       if (!mounted) return;
 
-      if (e.toString().contains('No image selected')) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unable to upload photo: $e')));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUploading = false;
-        });
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to logout: $e'),
+        ),
+      );
     }
   }
 
-  Future<void> _logout() async {
-    await _authService.logout();
-
-    if (!mounted) return;
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
-    );
-  }
+  // ------------------------------------------------------------
+  // DELETE ACCOUNT
+  // ------------------------------------------------------------
 
   Future<void> _deleteAccount() async {
     final passwordController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Delete Account'),
           content: Column(
@@ -121,9 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Your profile, expenses and account '
                 'will be permanently deleted.',
               ),
-
               const SizedBox(height: 20),
-
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -138,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context, false);
+                Navigator.pop(dialogContext, false);
               },
               child: const Text('Cancel'),
             ),
@@ -149,15 +190,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               onPressed: () {
                 if (passwordController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
-                      content: Text('Please enter your password.'),
+                      content: Text(
+                        'Please enter your password.',
+                      ),
                     ),
                   );
                   return;
                 }
 
-                Navigator.pop(context, true);
+                Navigator.pop(dialogContext, true);
               },
               child: const Text('Delete Account'),
             ),
@@ -167,6 +210,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirmed != true) {
+      passwordController.dispose();
+      return;
+    }
+
+    if (!mounted) {
       passwordController.dispose();
       return;
     }
@@ -186,7 +234,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
         (route) => false,
       );
     } catch (e) {
@@ -198,79 +248,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isDeleting = false;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unable to delete account: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to delete account: $e'),
+        ),
+      );
     }
   }
 
-  String _getFirstName() {
-    return _profile?['firstName']?.toString() ?? 'User';
-  }
-
-  String _getLastName() {
-    return _profile?['lastName']?.toString() ?? '';
-  }
-
-  String _getGender() {
-    return _profile?['gender']?.toString() ?? 'Not specified';
-  }
-
-  String _getEmail() {
-    return _profile?['email']?.toString() ?? _auth.currentUser?.email ?? '';
-  }
-
-  String _getPhotoUrl() {
-    return _profile?['photoUrl']?.toString() ?? '';
-  }
+  // ------------------------------------------------------------
+  // BUILD
+  // ------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final photoUrl = _getPhotoUrl();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile & Settings')),
-
+      appBar: AppBar(
+        title: const Text('Profile & Settings'),
+      ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Profile Header
-                Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 55,
-                        backgroundImage: photoUrl.isNotEmpty
-                            ? NetworkImage(photoUrl)
-                            : null,
-                        child: photoUrl.isEmpty
-                            ? const Icon(Icons.person, size: 60)
-                            : null,
-                      ),
+                // ==================================================
+                // PROFILE HEADER
+                // ==================================================
 
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: CircleAvatar(
-                          radius: 19,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            icon: _isUploading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.camera_alt, size: 19),
-                            onPressed: _isUploading ? null : _uploadPhoto,
-                          ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 10),
+
+                Center(
+                  child: CircleAvatar(
+                    radius: 55,
+                    backgroundColor: colorScheme.primaryContainer,
+                    child: Icon(
+                      Icons.person,
+                      size: 60,
+                      color: colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ),
 
@@ -278,7 +298,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 Center(
                   child: Text(
-                    '${_getFirstName()} ${_getLastName()}'.trim(),
+                    _getFullName(),
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -291,69 +312,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Center(
                   child: Text(
                     _getEmail(),
-                    style: TextStyle(color: Colors.grey.shade600),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 30),
 
-                // Personal Information
+                // ==================================================
+                // SETTINGS
+                // ==================================================
+
                 const Text(
-                  'Personal Information',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                ),
-
-                const SizedBox(height: 10),
-
-                Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.person_outline),
-                        title: const Text('First Name'),
-                        subtitle: Text(_getFirstName()),
-                      ),
-
-                      const Divider(height: 1),
-
-                      ListTile(
-                        leading: const Icon(Icons.person),
-                        title: const Text('Last Name'),
-                        subtitle: Text(_getLastName()),
-                      ),
-
-                      const Divider(height: 1),
-
-                      ListTile(
-                        leading: const Icon(Icons.wc),
-                        title: const Text('Gender'),
-                        subtitle: Text(_getGender()),
-                      ),
-
-                      const Divider(height: 1),
-
-                      ListTile(
-                        leading: const Icon(Icons.email_outlined),
-                        title: const Text('Email'),
-                        subtitle: Text(_getEmail()),
-                      ),
-                    ],
+                  'Settings',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 25),
-
-                // Settings
-                const Text(
-                  'Settings',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                ),
-
                 const SizedBox(height: 10),
 
                 Card(
                   child: Column(
                     children: [
+                      // ------------------------------
+                      // DARK MODE
+                      // ------------------------------
+
                       ListTile(
                         leading: Icon(
                           ThemeService.instance.isDarkMode
@@ -369,7 +358,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         trailing: Switch(
                           value: ThemeService.instance.isDarkMode,
                           onChanged: (value) async {
-                            await ThemeService.instance.setDarkMode(value);
+                            await ThemeService.instance
+                                .setDarkMode(value);
 
                             if (mounted) {
                               setState(() {});
@@ -377,17 +367,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                       ),
+
                       const Divider(height: 1),
+
+                      // ------------------------------
+                      // DATA EXPORT
+                      // ------------------------------
+
                       ListTile(
-                        leading: const Icon(Icons.insert_chart_outlined),
-                        title: const Text('Data Export & Reports'),
-                        subtitle: const Text('Export expenses as PDF or CSV'),
-                        trailing: const Icon(Icons.chevron_right),
+                        leading: const Icon(
+                          Icons.insert_chart_outlined,
+                        ),
+                        title: const Text(
+                          'Data Export & Reports',
+                        ),
+                        subtitle: const Text(
+                          'Export expenses as PDF or CSV',
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                        ),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const DataExportScreen(),
+                              builder: (context) =>
+                                  const DataExportScreen(),
                             ),
                           );
                         },
@@ -398,10 +403,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 25),
 
-                // Account
+                // ==================================================
+                // ACCOUNT
+                // ==================================================
+
                 const Text(
                   'Account',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
                 const SizedBox(height: 10),
@@ -409,13 +420,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Card(
                   child: Column(
                     children: [
+                      // ------------------------------
+                      // LOGOUT
+                      // ------------------------------
+
                       ListTile(
-                        leading: const Icon(Icons.logout),
+                        leading: const Icon(
+                          Icons.logout,
+                        ),
                         title: const Text('Logout'),
-                        onTap: _logout,
+                        onTap: _isDeleting ? null : _logout,
                       ),
 
                       const Divider(height: 1),
+
+                      // ------------------------------
+                      // DELETE ACCOUNT
+                      // ------------------------------
 
                       ListTile(
                         leading: const Icon(
@@ -429,7 +450,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        subtitle: const Text('Permanently delete your account'),
+                        subtitle: const Text(
+                          'Permanently delete your account',
+                        ),
                         trailing: _isDeleting
                             ? const SizedBox(
                                 width: 22,
@@ -437,7 +460,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: CircularProgressIndicator(),
                               )
                             : null,
-                        onTap: _isDeleting ? null : _deleteAccount,
+                        onTap:
+                            _isDeleting ? null : _deleteAccount,
                       ),
                     ],
                   ),

@@ -145,6 +145,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  dio:
+    dependency: transitive
+    description:
+      name: dio
+      sha256: "852ec3b48cc431ac04fff978413c541502b67ffc3e26921e74e3d994694192c1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.11.1"
+  dio_web_adapter:
+    dependency: transitive
+    description:
+      name: dio_web_adapter
+      sha256: "3a1b2cd7be71086f38504956e3ebcd2837288d231ff454bafa78021244102bfc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.2"
   equatable:
     dependency: transitive
     description:
@@ -185,6 +201,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  file_saver:
+    dependency: "direct main"
+    description:
+      name: file_saver
+      sha256: "68c9a085d9bb4546e0a31d1e583a48d7c17a6987d538788ea064f0043b1fc02d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
   file_selector_linux:
     dependency: transitive
     description:
@@ -310,6 +334,54 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_file_manager_android:
+    dependency: transitive
+    description:
+      name: flutter_file_manager_android
+      sha256: "94c0254990f47e528acff0dad11d43dcd81369c47dd2773bb2431770f057afdc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
+  flutter_file_manager_ios:
+    dependency: transitive
+    description:
+      name: flutter_file_manager_ios
+      sha256: "442549e5b6dff152fb38a6120a64febefa55fbbe59aaf43411888cf18cbb6bd9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
+  flutter_file_manager_macos:
+    dependency: transitive
+    description:
+      name: flutter_file_manager_macos
+      sha256: ceb3da499bdf7741ae2d06658cef42f250b154b594e786284b9744a9161dbfdf
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
+  flutter_file_manager_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_file_manager_platform_interface
+      sha256: "7a0b81a429ff81e02305a1876d101b832161887420b861b27a9f118f0de4b5df"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.1"
+  flutter_file_manager_web:
+    dependency: transitive
+    description:
+      name: flutter_file_manager_web
+      sha256: b1be154e2d48da92bf19fea74e7f18f1a531a33885d751f91ca40092477176a9
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
+  flutter_file_saver:
+    dependency: "direct main"
+    description:
+      name: flutter_file_saver
+      sha256: e84694efeef35cb4a8e5ff1394d3f298619546a64698207d279ba7a3b25b6620
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.10.0"
   flutter_lints:
     dependency: "direct dev"
     description:
