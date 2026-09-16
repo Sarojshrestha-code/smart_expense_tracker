@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../services/auth_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/user_service.dart';
 import 'email_verification_screen.dart';
 
@@ -19,10 +19,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final AuthService _authService = AuthService();
   final UserService _userService = UserService();
 
-  bool _loading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -84,16 +82,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    final authProvider = context.read<AuthProvider>();
+
+    final credential = await authProvider.register(
+      email: email,
+      password: password,
+    );
+
+    if (!mounted) return;
+
+    if (credential == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            authProvider.errorMessage ??
+                'Registration failed. Please try again.',
+          ),
+        ),
+      );
+      return;
+    }
 
     try {
-      await _authService.register(
-        email: email,
-        password: password,
-      );
-
       // Save personal information in Firestore.
       await _userService.createUserProfile(
         firstName: firstName,
@@ -112,39 +122,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
+      // User must verify email before entering the application.
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => const EmailVerificationScreen(),
         ),
         (route) => false,
-      );
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
-      String message;
-
-      switch (e.code) {
-        case 'email-already-in-use':
-          message =
-              'An account already exists with this email.';
-          break;
-        case 'invalid-email':
-          message =
-              'Please enter a valid email address.';
-          break;
-        case 'weak-password':
-          message =
-              'Password must be at least 6 characters.';
-          break;
-        default:
-          message = e.message ?? 'Registration failed.';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -159,12 +143,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
     }
   }
 
@@ -180,6 +158,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Account'),
@@ -189,8 +169,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 15),
 
@@ -207,8 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 TextField(
                   controller: _firstNameController,
-                  textCapitalization:
-                      TextCapitalization.words,
+                  textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
                     labelText: 'First Name',
                     prefixIcon: Icon(Icons.person),
@@ -220,12 +198,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 TextField(
                   controller: _lastNameController,
-                  textCapitalization:
-                      TextCapitalization.words,
+                  textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
                     labelText: 'Last Name',
-                    prefixIcon:
-                        Icon(Icons.person_outline),
+                    prefixIcon: Icon(Icons.person_outline),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -240,24 +216,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: _genders.map((gender) {
-                    return DropdownMenuItem(
+                    return DropdownMenuItem<String>(
                       value: gender,
                       child: Text(gender),
                     );
                   }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedGender = value;
-                    });
-                  },
+                  onChanged: authProvider.isLoading
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _selectedGender = value;
+                          });
+                        },
                 ),
 
                 const SizedBox(height: 16),
 
                 TextField(
                   controller: _emailController,
-                  keyboardType:
-                      TextInputType.emailAddress,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'Email',
                     prefixIcon: Icon(Icons.email),
@@ -293,13 +270,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
 
                 TextField(
-                  controller:
-                      _confirmPasswordController,
+                  controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
-                    prefixIcon:
-                        const Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
@@ -322,10 +297,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(
                   height: 52,
                   child: ElevatedButton(
-                    onPressed:
-                        _loading ? null : _register,
-                    child: _loading
-                        ? const CircularProgressIndicator()
+                    onPressed: authProvider.isLoading
+                        ? null
+                        : _register,
+                    child: authProvider.isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                            ),
+                          )
                         : const Text(
                             'Register',
                             style: TextStyle(
@@ -338,16 +320,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 12),
 
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
                       'Already have an account? ',
                     ),
                     TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: authProvider.isLoading
+                          ? null
+                          : () {
+                              Navigator.pop(context);
+                            },
                       child: const Text('Login'),
                     ),
                   ],

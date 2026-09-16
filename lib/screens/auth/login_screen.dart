@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../services/auth_service.dart';
-import 'register_screen.dart';
+import '../../providers/auth_provider.dart';
 import 'email_verification_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,9 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final AuthService _authService = AuthService();
-
-  bool _loading = false;
   bool _resettingPassword = false;
   bool _obscurePassword = true;
 
@@ -35,110 +32,77 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    final authProvider = context.read<AuthProvider>();
 
-    try {
-      final credential = await _authService.login(
-        email: email,
-        password: password,
-      );
+    final credential = await authProvider.login(
+      email: email,
+      password: password,
+    );
 
-      final user = credential.user;
+    if (!mounted) return;
 
-      if (user == null) {
-        throw Exception(
-          'Unable to login. Please try again.',
-        );
-      }
-
-      await user.reload();
-
-      final refreshedUser =
-          FirebaseAuth.instance.currentUser;
-
-      if (refreshedUser == null ||
-          !refreshedUser.emailVerified) {
-        if (!mounted) return;
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                const EmailVerificationScreen(),
-          ),
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Please verify your email before entering the app.',
-            ),
-          ),
-        );
-
-        return;
-      }
-
-      if (!mounted) return;
-
-      Navigator.pushReplacementNamed(
-        context,
-        '/main',
-      );
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
-      String message;
-
-      switch (e.code) {
-        case 'user-not-found':
-          message =
-              'No account found with this email.';
-          break;
-        case 'wrong-password':
-        case 'invalid-credential':
-          message =
-              'Incorrect email or password.';
-          break;
-        case 'invalid-email':
-          message =
-              'Please enter a valid email address.';
-          break;
-        case 'user-disabled':
-          message =
-              'This account has been disabled.';
-          break;
-        default:
-          message = e.message ?? 'Login failed.';
-      }
+    if (credential == null) {
+      final message =
+          authProvider.errorMessage ?? 'Login failed.';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
+
+      return;
+    }
+
+    final user = credential.user;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to login. Please try again.'),
+        ),
+      );
+      return;
+    }
+
+    await user.reload();
+
+    if (!mounted) return;
+
+    final refreshedUser = authProvider.user;
+
+    if (refreshedUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to load your account.'),
+        ),
+      );
+      return;
+    }
+
+    if (!refreshedUser.emailVerified) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const EmailVerificationScreen(),
+        ),
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            e.toString().replaceFirst(
-                  'Exception: ',
-                  '',
-                ),
+            'Please verify your email before entering the app.',
           ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
+
+      return;
     }
+
+    Navigator.pushReplacementNamed(
+      context,
+      '/main',
+    );
   }
 
   Future<void> _forgotPassword() async {
@@ -159,13 +123,19 @@ class _LoginScreenState extends State<LoginScreen> {
       _resettingPassword = true;
     });
 
-    try {
-      await _authService.resetPassword(
-        email: email,
-      );
+    final authProvider = context.read<AuthProvider>();
 
-      if (!mounted) return;
+    final success = await authProvider.resetPassword(
+      email: email,
+    );
 
+    if (!mounted) return;
+
+    setState(() {
+      _resettingPassword = false;
+    });
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -173,49 +143,16 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       );
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
-      String message;
-
-      switch (e.code) {
-        case 'user-not-found':
-          message =
-              'No account found with this email.';
-          break;
-        case 'invalid-email':
-          message =
-              'Please enter a valid email address.';
-          break;
-        default:
-          message =
-              e.message ?? 'Could not send reset email.';
-      }
+    } else {
+      final message =
+          authProvider.errorMessage ??
+          'Could not send reset email.';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst(
-                  'Exception: ',
-                  '',
-                ),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _resettingPassword = false;
-        });
-      }
     }
   }
 
@@ -228,6 +165,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -235,8 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Center(
             child: SingleChildScrollView(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Icon(
                     Icons.account_balance_wallet,
@@ -265,8 +203,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   TextField(
                     controller: _emailController,
-                    keyboardType:
-                        TextInputType.emailAddress,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Email',
                       prefixIcon: Icon(Icons.email),
@@ -279,6 +217,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (!authProvider.isLoading) {
+                        _login();
+                      }
+                    },
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock),
@@ -304,15 +248,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: _resettingPassword
+                      onPressed: authProvider.isLoading ||
+                              _resettingPassword
                           ? null
                           : _forgotPassword,
                       child: _resettingPassword
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child:
-                                  CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2,
                               ),
                             )
@@ -327,10 +271,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
-                      onPressed:
-                          _loading ? null : _login,
-                      child: _loading
-                          ? const CircularProgressIndicator()
+                      onPressed: authProvider.isLoading
+                          ? null
+                          : _login,
+                      child: authProvider.isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
+                            )
                           : const Text(
                               'Login',
                               style: TextStyle(
@@ -343,22 +294,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
 
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
                         "Don't have an account? ",
                       ),
                       TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const RegisterScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: authProvider.isLoading
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const RegisterScreen(),
+                                  ),
+                                );
+                              },
                         child: const Text('Register'),
                       ),
                     ],

@@ -1,7 +1,8 @@
  import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/expense_model.dart';
-import '../../services/expense_service.dart';
+import '../../providers/expense_provider.dart';
 
 class EditExpenseScreen extends StatefulWidget {
   final Expense expense;
@@ -16,18 +17,16 @@ class EditExpenseScreen extends StatefulWidget {
       _EditExpenseScreenState();
 }
 
-class _EditExpenseScreenState extends State<EditExpenseScreen> {
+class _EditExpenseScreenState
+    extends State<EditExpenseScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
-
-  final ExpenseService _expenseService = ExpenseService();
+  final _descriptionController =
+      TextEditingController();
 
   String _category = 'Food & Dining';
 
   late DateTime _selectedDate;
-
-  bool _loading = false;
 
   final List<String> _categories = [
     'Food & Dining',
@@ -45,31 +44,22 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     switch (category) {
       case 'Food & Dining':
         return Icons.restaurant;
-
       case 'Transportation':
         return Icons.directions_car;
-
       case 'Utilities & Bills':
         return Icons.lightbulb;
-
       case 'Housing':
         return Icons.home;
-
       case 'Entertainment & Leisure':
         return Icons.movie;
-
       case 'Shopping':
         return Icons.shopping_bag;
-
       case 'Subscriptions':
         return Icons.subscriptions;
-
       case 'Health & Medical':
         return Icons.health_and_safety;
-
       case 'Other / Miscellaneous':
         return Icons.category;
-
       default:
         return Icons.category;
     }
@@ -79,25 +69,18 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     switch (category) {
       case 'Food':
         return 'Food & Dining';
-
       case 'Transport':
         return 'Transportation';
-
       case 'Bills':
         return 'Utilities & Bills';
-
       case 'Entertainment':
         return 'Entertainment & Leisure';
-
       case 'Health':
         return 'Health & Medical';
-
       case 'Education':
         return 'Other / Miscellaneous';
-
       case 'Other':
         return 'Other / Miscellaneous';
-
       default:
         if (_categories.contains(category)) {
           return category;
@@ -166,48 +149,35 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    final provider = context.read<ExpenseProvider>();
 
-    try {
-      final updatedExpense = Expense(
-        id: widget.expense.id,
-        userId: widget.expense.userId,
-        title: title,
-        amount: amount,
-        category: _category,
-        description:
-            _descriptionController.text.trim(),
-        date: _selectedDate,
-      );
+    final updatedExpense = Expense(
+      id: widget.expense.id,
+      userId: widget.expense.userId,
+      title: title,
+      amount: amount,
+      category: _category,
+      description:
+          _descriptionController.text.trim(),
+      date: _selectedDate,
+    );
 
-      await _expenseService.updateExpense(
-        updatedExpense,
-      );
+    final success =
+        await provider.updateExpense(updatedExpense);
 
-      if (!mounted) return;
+    if (!mounted) return;
 
+    if (success) {
       _showMessage(
         'Expense updated successfully',
       );
 
       Navigator.pop(context);
-    } catch (e) {
-      if (!mounted) return;
-
+    } else {
       _showMessage(
-        e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            ),
+        provider.errorMessage ??
+            'Unable to update expense.',
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
     }
   }
 
@@ -219,6 +189,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading =
+        context.watch<ExpenseProvider>().isLoading;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Expense'),
@@ -231,17 +204,17 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
           children: [
             TextField(
               controller: _titleController,
+              enabled: !isLoading,
               decoration: const InputDecoration(
                 labelText: 'Expense Title',
                 prefixIcon: Icon(Icons.edit),
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
             TextField(
               controller: _amountController,
+              enabled: !isLoading,
               keyboardType:
                   const TextInputType.numberWithOptions(
                 decimal: true,
@@ -253,9 +226,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
               initialValue: _category,
               decoration: const InputDecoration(
@@ -278,19 +249,19 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _category = value;
-                  });
-                }
-              },
+              onChanged: isLoading
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() {
+                          _category = value;
+                        });
+                      }
+                    },
             ),
-
             const SizedBox(height: 16),
-
             InkWell(
-              onTap: _selectDate,
+              onTap: isLoading ? null : _selectDate,
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Date',
@@ -305,30 +276,26 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             TextField(
               controller: _descriptionController,
               maxLines: 3,
+              enabled: !isLoading,
               decoration: const InputDecoration(
                 labelText: 'Description',
-                hintText:
-                    'Optional description',
+                hintText: 'Optional description',
                 prefixIcon:
                     Icon(Icons.description),
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 25),
-
             SizedBox(
               height: 55,
               child: ElevatedButton.icon(
                 onPressed:
-                    _loading ? null : _updateExpense,
-                icon: _loading
+                    isLoading ? null : _updateExpense,
+                icon: isLoading
                     ? const SizedBox(
                         width: 20,
                         height: 20,
@@ -337,7 +304,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                       )
                     : const Icon(Icons.update),
                 label: Text(
-                  _loading
+                  isLoading
                       ? 'Updating...'
                       : 'Update Expense',
                   style: const TextStyle(

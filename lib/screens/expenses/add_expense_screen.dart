@@ -1,6 +1,7 @@
  import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../services/expense_service.dart';
+import '../../providers/expense_provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -15,13 +16,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  final ExpenseService _expenseService = ExpenseService();
-
   String _category = 'Food & Dining';
 
   DateTime _selectedDate = DateTime.now();
-
-  bool _loading = false;
 
   final List<String> _categories = [
     'Food & Dining',
@@ -39,31 +36,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     switch (category) {
       case 'Food & Dining':
         return Icons.restaurant;
-
       case 'Transportation':
         return Icons.directions_car;
-
       case 'Utilities & Bills':
         return Icons.lightbulb;
-
       case 'Housing':
         return Icons.home;
-
       case 'Entertainment & Leisure':
         return Icons.movie;
-
       case 'Shopping':
         return Icons.shopping_bag;
-
       case 'Subscriptions':
         return Icons.subscriptions;
-
       case 'Health & Medical':
         return Icons.health_and_safety;
-
       case 'Other / Miscellaneous':
         return Icons.category;
-
       default:
         return Icons.category;
     }
@@ -74,7 +62,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _titleController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
-
     super.dispose();
   }
 
@@ -110,36 +97,26 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    final provider = context.read<ExpenseProvider>();
 
-    try {
-      await _expenseService.addExpense(
-        title: title,
-        amount: amount,
-        category: _category,
-        description: _descriptionController.text.trim(),
-        date: _selectedDate,
-      );
+    final success = await provider.addExpense(
+      title: title,
+      amount: amount,
+      category: _category,
+      description: _descriptionController.text.trim(),
+      date: _selectedDate,
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
+    if (success) {
       _showMessage('Expense added successfully');
-
       Navigator.pop(context);
-    } catch (e) {
-      if (!mounted) return;
-
+    } else {
       _showMessage(
-        e.toString().replaceFirst('Exception: ', ''),
+        provider.errorMessage ??
+            'Unable to add expense.',
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
     }
   }
 
@@ -151,6 +128,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading =
+        context.watch<ExpenseProvider>().isLoading;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Expense'),
@@ -158,7 +138,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _titleController,
@@ -169,9 +150,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
             TextField(
               controller: _amountController,
               keyboardType:
@@ -186,9 +165,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
               initialValue: _category,
               decoration: const InputDecoration(
@@ -211,23 +188,24 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _category = value;
-                  });
-                }
-              },
+              onChanged: isLoading
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() {
+                          _category = value;
+                        });
+                      }
+                    },
             ),
-
             const SizedBox(height: 16),
-
             InkWell(
-              onTap: _selectDate,
+              onTap: isLoading ? null : _selectDate,
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Date',
-                  prefixIcon: Icon(Icons.calendar_today),
+                  prefixIcon:
+                      Icon(Icons.calendar_today),
                   border: OutlineInputBorder(),
                 ),
                 child: Text(
@@ -237,12 +215,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             TextField(
               controller: _descriptionController,
               maxLines: 3,
+              enabled: !isLoading,
               decoration: const InputDecoration(
                 labelText: 'Description',
                 hintText: 'Optional description',
@@ -250,23 +227,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 25),
-
             SizedBox(
               height: 55,
               child: ElevatedButton.icon(
                 onPressed:
-                    _loading ? null : _saveExpense,
-                icon: _loading
+                    isLoading ? null : _saveExpense,
+                icon: isLoading
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(),
+                        child:
+                            CircularProgressIndicator(),
                       )
                     : const Icon(Icons.save),
                 label: Text(
-                  _loading
+                  isLoading
                       ? 'Saving...'
                       : 'Save Expense',
                   style: const TextStyle(
