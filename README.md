@@ -267,37 +267,34 @@ Firestore Security Rules should be configured so that authenticated users can on
 
 The following screenshots showcase the main features and user interface of the Smart Expense Tracker application.
 
-### Authentication
+### Authentication & Dashboard
 
-![Login Screen](screenshots/login.jpeg)
+| Login                                          | Home                                          |
+| ---------------------------------------------- | --------------------------------------------- |
+| <img src="screenshots/login.jpeg" width="250"> | <img src="screenshots/home.jpeg" width="250"> |
 
-### Home Dashboard
+### Expense & Budget Management
 
-![Home Dashboard](screenshots/home.jpeg)
-
-### Expense Management
-
-![Expense Management](screenshots/expense.jpeg)
-
-### Budget Management
-
-![Budget Management](screenshots/budget.jpeg)
+| Expenses                                         | Budget                                          |
+| ------------------------------------------------ | ----------------------------------------------- |
+| <img src="screenshots/expense.jpeg" width="250"> | <img src="screenshots/budget.jpeg" width="250"> |
 
 ### Analytics
 
-![Analytics Overview](screenshots/analytics1.jpeg)
+| Analytics Overview                                  | Analytics Details                                   |
+| --------------------------------------------------- | --------------------------------------------------- |
+| <img src="screenshots/analytics1.jpeg" width="250"> | <img src="screenshots/analytics2.jpeg" width="250"> |
 
-![Analytics Details](screenshots/analytics2.jpeg)
+### Profile & Dark Mode
 
-### Profile & Settings
+| Profile                                          | Monthly Spending - Dark Mode                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| <img src="screenshots/profile.jpeg" width="250"> | <img src="screenshots/monthly%20spending%20dark.jpeg" width="250"> |
 
-![Profile Screen](screenshots/profile.jpeg)
+| Spending Analytics - Dark Mode                                       |
+| -------------------------------------------------------------------- |
+| <img src="screenshots/spending%20analytics%20dark.jpeg" width="250"> |
 
-### Dark Mode
-
-![Monthly Spending - Dark Mode](screenshots/monthly%20spending%20dark.jpeg)
-
-![Spending Analytics - Dark Mode](screenshots/spending%20analytics%20dark.jpeg)
 
 
 
