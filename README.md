@@ -263,6 +263,45 @@ Firestore Security Rules should be configured so that authenticated users can on
 
 ---
 
+## Screenshots
+
+The following screenshots showcase the main features and user interface of the Smart Expense Tracker application.
+
+### Authentication
+
+![Login Screen](screenshots/login.jpeg)
+
+### Home Dashboard
+
+![Home Dashboard](screenshots/home.jpeg)
+
+### Expense Management
+
+![Expense Management](screenshots/expense.jpeg)
+
+### Budget Management
+
+![Budget Management](screenshots/budget.jpeg)
+
+### Analytics
+
+![Analytics Overview](screenshots/analytics1.jpeg)
+
+![Analytics Details](screenshots/analytics2.jpeg)
+
+### Profile & Settings
+
+![Profile Screen](screenshots/profile.jpeg)
+
+### Dark Mode
+
+![Monthly Spending - Dark Mode](screenshots/monthly%20spending%20dark.jpeg)
+
+![Spending Analytics - Dark Mode](screenshots/spending%20analytics%20dark.jpeg)
+
+
+
+
 ##  Getting Started
 
 ### Prerequisites
