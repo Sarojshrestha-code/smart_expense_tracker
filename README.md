@@ -113,17 +113,17 @@ The application does not require users to upload a profile picture.
 
  Technology                   Purpose                                         
  --------------------------- ----------------------------------------------- 
- **Flutter**                 | Cross-platform application development          
- **Dart**                    | Programming language                            
- **Firebase Authentication** | User registration, login and account management 
- **Cloud Firestore**         | Cloud database                                  
- **Provider**                | State management                                
- **SharedPreferences**       | Local theme preference storage                  
- **Material 3**              | User interface design                           
- **Intl**                    | Date and number formatting                      
- **FL Chart**                | Analytics and data visualization                
- **PDF**                     | PDF report generation                           
- **CSV**                     | CSV data export                                 
+ **Flutter**                 : Cross-platform application development          
+ **Dart**                    : Programming language                            
+ **Firebase Authentication** : User registration, login and account management 
+ **Cloud Firestore**         : Cloud database                                  
+ **Provider**                : State management                                
+ **SharedPreferences**       : Local theme preference storage                  
+ **Material 3**              : User interface design                           
+ **Intl**                    : Date and number formatting                      
+ **FL Chart**                : Analytics and data visualization                
+ **PDF**                     : PDF report generation                           
+ **CSV**                     : CSV data export                                 
 
 ---
 
@@ -289,7 +289,7 @@ flutter doctor
 ### 1. Clone the Repository
 
 ```bash
-git clone <https://github.com/Sarojshrestha-code/smart_expense_tracker>
+git clone < https://github.com/Sarojshrestha-code/smart_expense_tracker >
 ```
 
 Navigate into the project:
@@ -673,13 +673,13 @@ Core functionality currently includes:
 
 **Saroj Shrestha**
 
-Bachelor of Information Technology (BIT)
-NCMT college
-Nepal
+*Bachelor of Information Technology (BIT)
+*NCMT College
+*Nepal
 
 ---
 
-## 📄 License
+##  License
 
 This project is developed for educational and academic purposes.
 
