@@ -1,8 +1,8 @@
- import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../services/auth_service.dart';
-import '../../services/theme_service.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/user_service.dart';
 import '../auth/login_screen.dart';
 import '../reports/data_export_screen.dart';
@@ -15,11 +15,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
   final UserService _userService = UserService();
-
-  final AuthService _authService = AuthService();
 
   Map<String, dynamic>? _profile;
 
@@ -112,7 +108,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return profileEmail;
     }
 
-    return _auth.currentUser?.email ?? '';
+    final authProvider = context.read<AuthProvider>();
+
+    return authProvider.user?.email ?? '';
   }
 
   // ------------------------------------------------------------
@@ -120,27 +118,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ------------------------------------------------------------
 
   Future<void> _logout() async {
-    try {
-      await _authService.logout();
+    final authProvider = context.read<AuthProvider>();
 
-      if (!mounted) return;
+    await authProvider.logout();
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
-        (route) => false,
-      );
-    } catch (e) {
-      if (!mounted) return;
+    if (!mounted) return;
 
+    if (authProvider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Unable to logout: $e'),
+          content: Text(authProvider.errorMessage!),
         ),
       );
+      return;
     }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginScreen(),
+      ),
+      (route) => false,
+    );
   }
 
   // ------------------------------------------------------------
@@ -235,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
+          builder: (_) => const LoginScreen(),
         ),
         (route) => false,
       );
@@ -264,6 +263,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final themeProvider = context.watch<ThemeProvider>();
+    final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -345,25 +347,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       ListTile(
                         leading: Icon(
-                          ThemeService.instance.isDarkMode
+                          themeProvider.isDarkMode
                               ? Icons.dark_mode
                               : Icons.light_mode,
                         ),
                         title: const Text('Dark Mode'),
                         subtitle: Text(
-                          ThemeService.instance.isDarkMode
+                          themeProvider.isDarkMode
                               ? 'Dark theme enabled'
                               : 'Light theme enabled',
                         ),
                         trailing: Switch(
-                          value: ThemeService.instance.isDarkMode,
+                          value: themeProvider.isDarkMode,
                           onChanged: (value) async {
-                            await ThemeService.instance
+                            await context
+                                .read<ThemeProvider>()
                                 .setDarkMode(value);
-
-                            if (mounted) {
-                              setState(() {});
-                            }
                           },
                         ),
                       ),
@@ -391,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
+                              builder: (_) =>
                                   const DataExportScreen(),
                             ),
                           );
@@ -429,7 +428,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icons.logout,
                         ),
                         title: const Text('Logout'),
-                        onTap: _isDeleting ? null : _logout,
+                        onTap: _isDeleting ||
+                                authProvider.isLoading
+                            ? null
+                            : _logout,
                       ),
 
                       const Divider(height: 1),
