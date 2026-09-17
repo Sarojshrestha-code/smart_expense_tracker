@@ -673,9 +673,11 @@ Core functionality currently includes:
 
 **Saroj Shrestha**
 
-*Bachelor of Information Technology (BIT)
-*NCMT College
-*Nepal
+Bachelor of Information Technology (BIT)
+
+NCMT College
+
+Nepal
 
 ---
 
