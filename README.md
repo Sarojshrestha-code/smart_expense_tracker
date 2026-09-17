@@ -1,22 +1,22 @@
- #  Smart Expense Tracker
+ # Smart Expense Tracker
 
-A modern **Personal Expense and Budget Management App** built with **Flutter and Firebase**. The application helps users securely manage their daily expenses, set monthly budgets, analyze spending patterns, and export their financial data.
+A modern **Personal Expense and Budget Management App** built with **Flutter and Firebase**. The application helps users securely manage daily expenses, set monthly budgets, analyze spending patterns, and export financial data.
 
 ---
 
-##  Project Overview
+## Project Overview
 
 **Smart Expense Tracker** is a mobile expense management application designed to make personal financial tracking simple, organized, and accessible.
 
-Users can create an account, securely sign in, record and manage expenses, set monthly budgets, analyze spending by category and month, switch between light and dark themes, and export their financial records as PDF or CSV files.
+Users can create an account, securely sign in, record and manage expenses, set monthly budgets, analyze spending by category and month, switch between light and dark themes, and export financial records as PDF or CSV files.
 
 The application uses **Firebase Authentication** for user authentication and **Cloud Firestore** for storing user-specific financial data.
 
 ---
 
-##  Features
+## Features
 
-###  User Authentication
+### User Authentication
 
 * User registration and login
 * Firebase Authentication
@@ -27,7 +27,7 @@ The application uses **Firebase Authentication** for user authentication and **C
 * Protected application screens for authenticated users
 * User-specific data linked using Firebase UID
 
-###  Expense Management
+### Expense Management
 
 Users can:
 
@@ -42,19 +42,19 @@ Users can:
 
 #### Available Categories
 
-*  Food & Dining
-*  Transportation
-*  Utilities & Bills
-*  Housing
-*  Entertainment & Leisure
-*  Shopping
-*  Subscriptions
-*  Health & Medical
-*  Other / Miscellaneous
+* Food & Dining
+* Transportation
+* Utilities & Bills
+* Housing
+* Entertainment & Leisure
+* Shopping
+* Subscriptions
+* Health & Medical
+* Other / Miscellaneous
 
-###  Analytics & Reports
+### Analytics & Reports
 
-The application provides visual financial insights, including:
+The application provides financial insights, including:
 
 * Total spending
 * Current-month spending
@@ -65,7 +65,7 @@ The application provides visual financial insights, including:
 
 These features help users understand their spending patterns.
 
-###  Monthly Budget Management
+### Monthly Budget Management
 
 Users can:
 
@@ -75,7 +75,7 @@ Users can:
 * Store budget information separately for each month
 * Manage budget data using Firebase Firestore
 
-###  Light & Dark Mode
+### Light & Dark Mode
 
 The application supports dynamic theme switching.
 
@@ -83,9 +83,9 @@ The application supports dynamic theme switching.
 * Dark mode
 * Persistent theme preference
 * Theme preference stored locally
-* Smooth animated theme transitions
+* Animated theme transitions
 
-###  Data Export
+### Data Export
 
 Users can export their expense information in:
 
@@ -94,7 +94,7 @@ Users can export their expense information in:
 
 Exported files can be saved to the device for personal records and reporting.
 
-###  Profile & Account Management
+### Profile & Account Management
 
 The profile section provides:
 
@@ -109,25 +109,25 @@ The application does not require users to upload a profile picture.
 
 ---
 
-##  Technologies Used
+## Technologies Used
 
- Technology                   Purpose                                         
- --------------------------- ----------------------------------------------- 
- **Flutter**                 : Cross-platform application development          
- **Dart**                    : Programming language                            
- **Firebase Authentication** : User registration, login and account management 
- **Cloud Firestore**         : Cloud database                                  
- **Provider**                : State management                                
- **SharedPreferences**       : Local theme preference storage                  
- **Material 3**              : User interface design                           
- **Intl**                    : Date and number formatting                      
- **FL Chart**                : Analytics and data visualization                
- **PDF**                     : PDF report generation                           
- **CSV**                     : CSV data export                                 
+| Technology                  | Purpose                                         |
+| --------------------------- | ----------------------------------------------- |
+| **Flutter**                 | Cross-platform application development          |
+| **Dart**                    | Programming language                            |
+| **Firebase Authentication** | User registration, login and account management |
+| **Cloud Firestore**         | Cloud database                                  |
+| **Provider**                | State management                                |
+| **SharedPreferences**       | Local theme preference storage                  |
+| **Material 3**              | User interface design                           |
+| **Intl**                    | Date and number formatting                      |
+| **FL Chart**                | Analytics and data visualization                |
+| **PDF**                     | PDF report generation                           |
+| **CSV**                     | CSV data export                                 |
 
 ---
 
-##  Application Architecture
+## Application Architecture
 
 The application follows a structured architecture that separates UI, state management, business logic, models, and Firebase services.
 
@@ -138,9 +138,8 @@ lib/
 │
 ├── models/
 │   ├── expense_model.dart
-│   ├── budget.dart
-│   └── expense_model.dart
-│    
+│   └── budget.dart
+│
 ├── providers/
 │   ├── auth_provider.dart
 │   ├── expense_provider.dart
@@ -196,11 +195,11 @@ Service Layer
       └──────────────► Cloud Firestore
 ```
 
-This structure keeps application logic outside the UI widgets and makes the application easier to maintain and extend.
+This structure keeps application logic separate from UI widgets and makes the application easier to maintain and extend.
 
 ---
 
-##  Firebase Structure
+## Firebase Structure
 
 The application uses Firebase services for authentication and cloud data storage.
 
@@ -251,15 +250,135 @@ budgets/
 
 ---
 
-##  Security & Data Isolation
+## Security & Data Isolation
 
 The application is designed around authenticated user access.
 
 Each user's expense and budget data is associated with their Firebase Authentication UID.
 
-This ensures that application data can be scoped to the currently authenticated user rather than treating all expenses as belonging to one global account.
+This allows application data to be scoped to the currently authenticated user rather than treating all expenses as belonging to one global account.
 
 Firestore Security Rules should be configured so that authenticated users can only access their own data.
+
+Do not commit Firebase service-account private keys, passwords, or other sensitive credentials to the repository.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+Before running the project, install:
+
+* Flutter SDK
+* Dart SDK
+* Android Studio or another Android development environment
+* Android SDK
+* Git
+* A Firebase project
+
+Verify Flutter installation:
+
+```bash
+flutter doctor
+```
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Sarojshrestha-code/smart_expense_tracker.git
+```
+
+Navigate into the project:
+
+```bash
+cd smart_expense_tracker
+```
+
+### 2. Install Dependencies
+
+```bash
+flutter pub get
+```
+
+### 3. Configure Firebase
+
+Install FlutterFire CLI:
+
+```bash
+dart pub global activate flutterfire_cli
+```
+
+From the root directory of the project, run:
+
+```bash
+flutterfire configure
+```
+
+Select your Firebase project and the required platforms.
+
+FlutterFire generates the Firebase configuration required by the Flutter application.
+
+### 4. Enable Firebase Services
+
+In the Firebase Console, enable:
+
+* Firebase Authentication
+* Cloud Firestore
+
+For Firebase Authentication, enable the:
+
+```text
+Email/Password
+```
+
+sign-in provider.
+
+### 5. Run the Application
+
+Connect an Android device or start an Android emulator.
+
+Then run:
+
+```bash
+flutter run
+```
+
+You can also run the project on Chrome during development:
+
+```bash
+flutter run -d chrome
+```
+
+---
+
+## Firebase Configuration
+
+The project uses FlutterFire configuration.
+
+Important Firebase-related files include:
+
+```text
+firebase.json
+lib/firebase_options.dart
+android/app/google-services.json
+```
+
+These files connect the Flutter application to the configured Firebase project.
+
+If you configure the application using your own Firebase project, run:
+
+```bash
+flutterfire configure
+```
+
+This generates the appropriate Firebase configuration files for your selected platforms.
+
+> Do not commit Firebase service-account private keys, passwords, or other sensitive credentials to the repository.
 
 ---
 
@@ -295,101 +414,11 @@ The following screenshots showcase the main features and user interface of the S
 | -------------------------------------------------------------------- |
 | <img src="screenshots/spending%20analytics%20dark.jpeg" width="250"> |
 
-
-
-
-
-##  Getting Started
-
-### Prerequisites
-
-Before running the project, install:
-
-* Flutter SDK
-* Dart SDK
-* Android Studio or another Android development environment
-* Android SDK
-* Git
-* A Firebase project
-
-Verify Flutter installation:
-
-```bash
-flutter doctor
-```
-
 ---
 
-##  Installation
+## Main Application Screens
 
-### 1. Clone the Repository
-
-```bash
-git clone < https://github.com/Sarojshrestha-code/smart_expense_tracker >
-```
-
-Navigate into the project:
-
-```bash
-cd smart_expense_tracker
-```
-
-### 2. Install Dependencies
-
-```bash
-flutter pub get
-```
-
-### 3. Configure Firebase
-
-Configure the application with your Firebase project using FlutterFire CLI.
-
-```bash
-flutterfire configure
-```
-
-This generates the Firebase configuration required by the Flutter application.
-
-Make sure Firebase Authentication and Cloud Firestore are enabled in your Firebase project.
-
-### 4. Run the Application
-
-Connect an Android device or start an Android emulator.
-
-Then run:
-
-```bash
-flutter run
-```
-
-You can also run the project on Chrome during development:
-
-```bash
-flutter run -d chrome
-```
-
----
-
-##  Firebase Configuration
-
-The project uses FlutterFire configuration.
-
-Important Firebase-related files include:
-
-```text
-firebase.json
-lib/firebase_options.dart
-```
-
-For security, Firebase credentials and other sensitive configuration should be handled appropriately before publishing the repository publicly.
-
-Do not commit private API keys, service-account files, passwords, or other secrets.
-
----
-
-##  Main Application Screens
-
-The application contains the following major sections:
+The application contains the following major sections.
 
 ### Authentication
 
@@ -455,7 +484,7 @@ Provides account and application settings, including theme management, export to
 
 ---
 
-##  User Interface
+## User Interface
 
 The application uses **Material 3** design principles to provide a modern Flutter interface.
 
@@ -473,7 +502,7 @@ Key UI characteristics include:
 
 ---
 
-##  State Management
+## State Management
 
 The application uses **Provider** for state management.
 
@@ -524,7 +553,7 @@ Using Provider keeps business and state logic separate from UI widgets.
 
 ---
 
-##  Expense Workflow
+## Expense Workflow
 
 ```text
 User
@@ -556,7 +585,7 @@ Updated Expense List
 
 ---
 
-##  Data Export Workflow
+## Data Export Workflow
 
 ```text
 Expense Data
@@ -577,7 +606,7 @@ Users can generate reports from their stored expense data and save them to their
 
 ---
 
-##  Testing & Code Quality
+## Testing & Code Quality
 
 Run Flutter static analysis using:
 
@@ -597,12 +626,12 @@ For a release build:
 flutter build apk --release
 ```
 
-Before creating a release, it is recommended to verify:
+Before creating a release, verify:
 
 * Authentication flow
 * Email verification
 * Password reset
-* Expense CRUD
+* Expense CRUD operations
 * Budget management
 * Analytics
 * Theme switching
@@ -613,7 +642,7 @@ Before creating a release, it is recommended to verify:
 
 ---
 
-##  Git Workflow
+## Git Workflow
 
 Typical development workflow:
 
@@ -630,7 +659,13 @@ git add .
 Create a commit:
 
 ```bash
-git commit -m "Update expense management and state management"
+git commit -m "Update project documentation"
+```
+
+Before pushing when the remote repository may contain newer commits:
+
+```bash
+git pull origin main --rebase
 ```
 
 Push changes:
@@ -641,26 +676,26 @@ git push origin main
 
 ---
 
-##  Future Enhancements
+## Future Enhancements
 
 Possible future improvements include:
 
-*  Budget limit notifications
-*  Advanced date-range filtering
-*  Expense search and filtering
-*  More detailed financial analytics
-*  Automated cloud backup
-*  Improved tablet responsiveness
-*  More report formats
-*  Custom analytics dashboards
-*  Recurring expenses
-*  Multiple currency support
-*  AI-powered spending insights
-*  Financial goals and savings tracking
+* Budget limit notifications
+* Advanced date-range filtering
+* Expense search and filtering
+* More detailed financial analytics
+* Automated cloud backup
+* Improved tablet responsiveness
+* More report formats
+* Custom analytics dashboards
+* Recurring expenses
+* Multiple currency support
+* AI-powered spending insights
+* Financial goals and savings tracking
 
 ---
 
-##  Academic Project
+## Academic Project
 
 This application was developed as an academic software project demonstrating practical implementation of:
 
@@ -680,9 +715,9 @@ The project demonstrates how a real-world personal finance application can combi
 
 ---
 
-##  Project Status
+## Project Status
 
-**Status:**  Active Development
+**Status: Active Development**
 
 Core functionality currently includes:
 
@@ -705,7 +740,7 @@ Core functionality currently includes:
 
 ---
 
-##  Author
+## Author
 
 **Saroj Shrestha**
 
@@ -717,7 +752,7 @@ Nepal
 
 ---
 
-##  License
+## License
 
 This project is developed for educational and academic purposes.
 
@@ -725,7 +760,7 @@ If you intend to reuse, modify, or distribute this project, please contact the a
 
 ---
 
-##  Acknowledgements
+## Acknowledgements
 
 This project uses the following technologies and services:
 
@@ -739,7 +774,7 @@ This project uses the following technologies and services:
 
 ---
 
-##  Contact
+## Contact
 
 For questions, suggestions, or collaboration regarding this project, please contact the project author through the contact information provided in the GitHub profile.
 
