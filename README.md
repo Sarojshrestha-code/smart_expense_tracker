@@ -414,6 +414,13 @@ The following screenshots showcase the main features and user interface of the S
 | -------------------------------------------------------------------- |
 | <img src="screenshots/spending%20analytics%20dark.jpeg" width="250"> |
 
+
+## Application Demo
+
+The following screen recording demonstrates the main application workflow, including authentication, expense management, analytics, budget management, and Light/Dark mode switching.
+
+<img src="demo/app_demo.gif" width="300">
+
 ---
 
 ## Main Application Screens
